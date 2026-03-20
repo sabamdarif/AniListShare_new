@@ -1,0 +1,22 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>
+            {% block page_title %}
+                {{ WEBSITE_NAME }}
+            {% endblock page_title %}
+        </title>
+        <link rel="icon" type="image/png" href="{% static "animelist/logo.png" %}">
+        <link href="{% static "animelist/style.css" %}" rel="stylesheet">
+        <link rel="stylesheet"
+              href="https://www.nerdfonts.com/assets/css/webfont.css">
+    </head>
+    <body>
+        {% block body_content %}
+        {% endblock body_content %}
+        {% block scripts %}{% endblock %}
+    </body>
+</html>
