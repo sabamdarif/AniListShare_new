@@ -36,8 +36,8 @@
                     <div class="user_dropdown_header">
                         <i class="nf nf-fa-circle_user user_dropdown_avatar_icon"></i>
                         <div class="user_dropdown_info">
-                            <span class="user_dropdown_name">User1</span>
-                            <span class="user_dropdown_sub">user1</span>
+                            <span class="user_dropdown_name">{{ request.user.username }}</span>
+                            <span class="user_dropdown_sub">{{ request.user.email }}</span>
                         </div>
                     </div>
                     <div class="user_dropdown_divider"></div>
@@ -67,6 +67,19 @@
             <!-- end user profile -->
         </div>
     </header>
+    {% for cat in categories %}
+        <h2>{{ cat.name }}</h2>
+        {% for anime in cat.anime_related_data.all %}
+            <p>{{ anime.name }}</p>
+            <p>{{ anime.stars }}</p>
+            <p>{{ anime.language }}</p>
+            <p>{{ anime.comments }}</p>
+            <p>{{ anime.season }}</p>
+            <img src="{{ anime.thumbnail_url }}" alt="{{ anime.name }}">
+            <p>{{ anime.mal_id }}</p>
+            <p>{{ anime.order }}</p>
+        {% endfor %}
+    {% endfor %}
 {% endblock body_content %}
 {% block scripts %}
     <script src="{% static 'animelist/header_dropdown.js' %}"></script>

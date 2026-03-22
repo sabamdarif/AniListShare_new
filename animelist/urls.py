@@ -20,4 +20,7 @@ from django.urls import include, path
 
 from animelist import views
 
-urlpatterns = [path("", views.home, name="home_page")]
+urlpatterns = [
+    path("", views.home, name="home_page"),
+    path("api/anime-list/", views.api_anime_list, name="api_anime_list"),
+]
