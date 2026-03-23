@@ -630,47 +630,261 @@ header {
   padding: 10px 12px !important;
 }
 
-/* ── Responsive ── */
+/* ── Mobile-only elements (hidden on desktop) ── */
+.m_header_search_btn {
+  display: none;
+}
+
+.m_fab {
+  display: none;
+}
+
+/* ── Responsive — Mobile card layout ── */
 @media (max-width: 768px) {
-  .anime_table_wrapper {
-    padding: 8px;
+  header {
+    padding: 8px 12px;
   }
 
-  .col_season,
-  .col_lang {
+  #header_search_section {
     display: none;
   }
 
-  .anime_table thead .col_season,
-  .anime_table thead .col_lang {
+  .header_action_buttons {
     display: none;
+  }
+
+  #header_action_buttons {
+    gap: 8px;
+  }
+
+  .m_header_search_btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: var(--text);
+    font-size: 1.2rem;
+    cursor: pointer;
   }
 
   .category_tab {
     padding: 10px 14px;
     font-size: 0.8rem;
   }
-}
 
-@media (max-width: 480px) {
-  .col_stars {
-    display: none;
-  }
-
-  .anime_table thead .col_stars {
-    display: none;
-  }
-
-  header {
-    flex-wrap: wrap;
+  .anime_table_wrapper {
     padding: 8px;
   }
 
-  #header_search_section {
-    order: 3;
-    max-width: 100%;
-    margin: 4px 0 0;
-    flex-basis: 100%;
+  .mobile_card_list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 0;
+  }
+
+  .m_card {
+    display: flex;
+    gap: 12px;
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: var(--shadow);
+  }
+
+  .m_card_thumb {
+    width: 90px;
+    min-width: 90px;
+    height: 130px;
+    object-fit: cover;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+
+  .m_card_body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .m_card_id {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+
+  .m_card_title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0;
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .m_card_seasons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    margin-top: 4px;
+  }
+
+  .m_season_item {
+    min-width: 90px;
+    flex: 0 1 auto;
+  }
+
+  .m_season_label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 3px;
+  }
+
+  .m_season_check {
+    color: var(--accent);
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .m_season_progress_text {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .m_season_bar_track {
+    width: 100%;
+    height: 4px;
+    background: var(--surface2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .m_season_bar_fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--accent2);
+    transition: width 0.3s ease;
+  }
+
+  .m_season_bar_fill.m_bar_done {
+    background: var(--accent);
+  }
+
+  .m_card_langs {
+    margin-top: 4px;
+  }
+
+  .m_card_langs .badge_lang {
+    font-size: 0.65rem;
+    padding: 2px 8px;
+  }
+
+  .m_card_footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: auto;
+    padding-top: 6px;
+  }
+
+  .m_card_rating {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .m_card_rating .star.filled {
+    font-size: 0.95rem;
+  }
+
+  .m_card_footer .edit_btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+  }
+
+  .m_fab {
+    position: fixed;
+    bottom: 24px;
+    right: 20px;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 14px rgba(74, 124, 63, 0.45);
+    cursor: pointer;
+    z-index: 90;
+    transition:
+      transform 0.15s ease,
+      box-shadow 0.15s ease;
+  }
+
+  .m_fab:hover {
+    transform: scale(1.08);
+    box-shadow: 0 6px 20px rgba(74, 124, 63, 0.55);
+  }
+
+  .m_card_skel {
+    min-height: 100px;
+  }
+
+  .skel_thumb_m {
+    width: 90px;
+    min-width: 90px;
+    height: 130px;
+    border-radius: 8px;
+  }
+
+  .m_card_skel .m_card_body {
+    gap: 8px;
+    justify-content: center;
   }
 }
 
+@media (max-width: 400px) {
+  .m_card {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .m_card_thumb {
+    width: 75px;
+    min-width: 75px;
+    height: 110px;
+  }
+
+  .m_card_title {
+    font-size: 0.9rem;
+  }
+
+  .category_tab {
+    padding: 9px 10px;
+    font-size: 0.75rem;
+  }
+}
