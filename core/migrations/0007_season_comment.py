@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('animelist', '0006_alter_season_anime'),
+        ('core', '0006_alter_season_anime'),
     ]
 
     operations = [

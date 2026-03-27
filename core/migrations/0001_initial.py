@@ -39,7 +39,7 @@ class Migration(migrations.Migration):
                 ('order', models.IntegerField(default=0)),
                 ('comments', models.TextField(blank=True, default='')),
                 ('season', models.CharField(blank=True, default='', max_length=200)),
-                ('category', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='anime_related', to='animelist.category')),
+                ('category', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='anime_related', to='core.category')),
             ],
             options={
                 'ordering': ['order'],

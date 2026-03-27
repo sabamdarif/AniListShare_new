@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('animelist', '0004_alter_anime_stars'),
+        ('core', '0004_alter_anime_stars'),
     ]
 
     operations = [
@@ -22,7 +22,7 @@ class Migration(migrations.Migration):
                 ('number', models.PositiveIntegerField(default=1)),
                 ('total_episodes', models.PositiveIntegerField(default=0)),
                 ('watched_episodes', models.PositiveIntegerField(default=0)),
-                ('anime', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='season', to='animelist.anime')),
+                ('anime', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='season', to='core.anime')),
             ],
             options={
                 'ordering': ['number'],

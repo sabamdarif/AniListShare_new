@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('animelist', '0003_remove_anime_comments_remove_anime_mal_id_and_more'),
+        ('core', '0003_remove_anime_comments_remove_anime_mal_id_and_more'),
     ]
 
     operations = [

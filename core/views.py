@@ -7,7 +7,7 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from animelist.models import Anime, Category, Season
+from core.models import Anime, Category, Season
 
 
 @login_required
@@ -17,7 +17,7 @@ def home(request):
         .prefetch_related("anime_related_data")
         .all()
     )
-    return render(request, "animelist/index.html", {"categories": categories})
+    return render(request, "core/index.html", {"categories": categories})
 
 
 def api_anime_list(request):

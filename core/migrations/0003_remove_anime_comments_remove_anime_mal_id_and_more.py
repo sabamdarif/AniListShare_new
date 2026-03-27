@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('animelist', '0002_rename_mail_id_anime_mal_id'),
+        ('core', '0002_rename_mail_id_anime_mal_id'),
     ]
 
     operations = [
@@ -22,7 +22,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='anime',
             name='category',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='anime_related_data', to='animelist.category'),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='anime_related_data', to='core.category'),
         ),
         migrations.AlterField(
             model_name='anime',

@@ -39,7 +39,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "animelist",
+    "core",
     # TMP: hot reloading
     "django_browser_reload",
     "django_watchfiles",
@@ -68,7 +68,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                "animelist.context_processors.website_name",
+                "core.context_processors.website_name",
             ],
         },
     },
