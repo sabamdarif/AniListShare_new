@@ -1,5 +1,6 @@
 import json
 
+from allauth.account.decorators import verified_email_required
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import JsonResponse
@@ -11,6 +12,7 @@ from core.models import Anime, Category, Season
 
 
 @login_required
+@verified_email_required
 def home(request):
     categories = (
         Category.objects.filter(user=request.user)
@@ -20,6 +22,7 @@ def home(request):
     return render(request, "core/index.html", {"categories": categories})
 
 
+@verified_email_required
 def api_anime_list(request):
     if not request.user.is_authenticated:
         return JsonResponse({"error": "Unauthorized"}, status=401)
@@ -64,6 +67,7 @@ def api_anime_list(request):
 @csrf_exempt
 @require_POST
 @login_required
+@verified_email_required
 def api_bulk_add_anime(request):
     """Create multiple Anime (+ Seasons) in a single request.
 
@@ -75,7 +79,7 @@ def api_bulk_add_anime(request):
     # and rely on @login_required + session cookie for auth.
     try:
         body = json.loads(request.body)
-    except (json.JSONDecodeError, ValueError):
+    except json.JSONDecodeError, ValueError:
         return JsonResponse({"error": "Invalid JSON"}, status=400)
 
     items = body.get("items")
@@ -120,7 +124,7 @@ def api_bulk_add_anime(request):
                     stars = float(stars_raw)
                     if stars < 0 or stars > 5:
                         stars = max(0, min(5, stars))
-                except (TypeError, ValueError):
+                except TypeError, ValueError:
                     stars = None
 
             seasons_raw = item.get("seasons") or []
@@ -150,7 +154,7 @@ def api_bulk_add_anime(request):
                     number = int(s.get("number", 1))
                     total = max(0, int(s.get("total_episodes", 0)))
                     watched = max(0, int(s.get("watched_episodes", 0)))
-                except (TypeError, ValueError):
+                except TypeError, ValueError:
                     continue
 
                 comment = str(s.get("comment", ""))[:2000]
@@ -170,13 +174,15 @@ def api_bulk_add_anime(request):
     return JsonResponse(result, status=201 if created else 400)
 
 
+@csrf_exempt
 @require_POST
 @login_required
+@verified_email_required
 def api_add_category(request):
     """Create a new Category for the authenticated user."""
     try:
         body = json.loads(request.body)
-    except (json.JSONDecodeError, ValueError):
+    except json.JSONDecodeError, ValueError:
         return JsonResponse({"error": "Invalid JSON"}, status=400)
 
     name = (body.get("name") or "").strip()

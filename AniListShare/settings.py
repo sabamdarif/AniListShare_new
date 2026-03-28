@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "core",
+    "accounts",
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
@@ -143,8 +144,14 @@ SOCIALACCOUNT_PROVIDERS = {
 LOGIN_URL = "/accounts/login"
 LOGIN_REDIRECT_URL = "home_page"
 LOGOUT_REDIRECT_URL = "/accounts/login"
-
-ACCOUNT_EMAIL_VERIFICATION = "optional"
+ACCOUNT_SIGNUP_FIELDS = [
+    "username*",
+    "email*",
+    "password1*",
+    "password2*",
+]  # it's default but i still did it
+ACCOUNT_LOGIN_METHODS = {"email", "username"}  # login either using email or username
+ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 # Internationalization
