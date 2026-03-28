@@ -1,5 +1,6 @@
 {% extends "core/base.html" %}
 {% load static %}
+{% load socialaccount %}
 {% block page_title %}
     Home - {{ WEBSITE_NAME }}
 {% endblock page_title %}
@@ -41,15 +42,33 @@
                 <i class="nf nf-seti-search"></i>
             </button>
             <div class="user_profile_wrapper" id="user_profile_wrapper">
+                {% if request.user.is_authenticated %}
+                    {% get_social_accounts request.user as accounts %}
+                {% endif %}
                 <button type="button"
                         id="user_profile_btn"
                         aria-haspopup="true"
                         aria-expanded="false">
-                    <i class="nf nf-fa-circle_user"></i>
+                    {% if accounts.google %}
+                        <img id="user_profile_icon"
+                             src="{{ accounts.google.0.extra_data.picture }}"
+                             alt="{{ request.user.username }}"
+                             referrerpolicy="no-referrer">
+                    {% else %}
+                        <i class="nf nf-fa-circle_user"></i>
+                    {% endif %}
                 </button>
                 <div class="user_dropdown_menu" id="user_dropdown_menu" role="menu">
                     <div class="user_dropdown_header">
-                        <i class="nf nf-fa-circle_user user_dropdown_avatar_icon"></i>
+                        {% if accounts.google %}
+                            <img class="user_dropdown_avatar_img"
+                                 src="{{ accounts.google.0.extra_data.picture }}"
+                                 alt="{{ request.user.username }}"
+                                 referrerpolicy="no-referrer"
+                                 style="border-radius: 50%; width: 40px; height: 40px; object-fit: cover;">
+                        {% else %}
+                            <i class="nf nf-fa-circle_user user_dropdown_avatar_icon"></i>
+                        {% endif %}
                         <div class="user_dropdown_info">
                             <span class="user_dropdown_name">{{ request.user.get_full_name|default:request.user.username }}</span>
                             <span class="user_dropdown_sub">{{ request.user.email }}</span>
