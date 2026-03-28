@@ -1,0 +1,79 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family:
+    "Inter",
+    system-ui,
+    -apple-system,
+    sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+.empty_msg {
+  text-align: center;
+  padding: 40px 12px !important;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+
+  100% {
+    background-position: 200px 0;
+  }
+}
+
+.skel {
+  display: inline-block;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--surface2) 25%,
+    var(--border) 50%,
+    var(--surface2) 75%
+  );
+  background-size: 400px 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+
+.skel_thumb {
+  width: 40px;
+  height: 54px;
+  border-radius: 4px;
+}
+
+.skel_text {
+  width: 140px;
+  height: 14px;
+}
+
+.skel_badge {
+  width: 80px;
+  height: 20px;
+  border-radius: 12px;
+}
+
+.skel_text_sm {
+  width: 80px;
+  height: 14px;
+}
+
+.skel_btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+.skeleton_row td {
+  padding: 10px 12px !important;
+}

@@ -10,7 +10,10 @@
             {% endblock page_title %}
         </title>
         <link rel="icon" type="image/png" href="{% static "core/logo.png" %}">
-        <link href="{% static "core/style.css" %}" rel="stylesheet">
+        <link href="{% static "core/css/colors.css" %}" rel="stylesheet">
+        <link href="{% static "core/css/base.css" %}" rel="stylesheet">
+        {% block extra_css %}
+        {% endblock extra_css %}
         <link rel="stylesheet"
               href="https://www.nerdfonts.com/assets/css/webfont.css">
     </head>

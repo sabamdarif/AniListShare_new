@@ -3,6 +3,16 @@
 {% block page_title %}
     Home - {{ WEBSITE_NAME }}
 {% endblock page_title %}
+{% block extra_css %}
+    <link href="{% static "core/css/header.css" %}" rel="stylesheet">
+    <link href="{% static "core/css/header_dropdown.css" %}" rel="stylesheet">
+    <link href="{% static "core/css/category_tabs.css" %}" rel="stylesheet">
+    <link href="{% static "core/css/anime_table.css" %}" rel="stylesheet">
+    <link href="{% static "core/css/add_anime.css" %}" rel="stylesheet">
+    <link href="{% static "core/css/add_category.css" %}" rel="stylesheet">
+    <link href="{% static "core/css/fab.css" %}" rel="stylesheet">
+    <link href="{% static "core/css/toast.css" %}" rel="stylesheet">
+{% endblock extra_css %}
 {% block body_content %}
     <header>
         <div class="header_content" id="header_title_section">
