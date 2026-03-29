@@ -130,9 +130,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
-        # For each OAuth based provider, either add a ``SocialApp``
-        # (``socialaccount`` app) containing the required client
-        # credentials, or list them here:
+        "EMAIL_AUTHENTICATION": True,
         "APPS": [
             {
                 "client_id": os.getenv("GOOGLE_CLIENT_ID"),
@@ -149,6 +147,8 @@ SOCIALACCOUNT_PROVIDERS = {
         },
     }
 }
+
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 
 LOGIN_URL = "/accounts/login"
 LOGIN_REDIRECT_URL = "home_page"
