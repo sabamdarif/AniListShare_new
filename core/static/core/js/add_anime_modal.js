@@ -18,6 +18,7 @@
     ];
 
     let _debounce = null;
+    let _selected = null;
     let _selectedName = "";
     let _rating = 0;
     let _seasons = [];
