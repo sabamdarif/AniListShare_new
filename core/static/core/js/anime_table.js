@@ -931,6 +931,7 @@
 
   tabs.forEach(function (btn) {
     btn.addEventListener("click", function () {
+      if (btn.classList.contains("active")) return;
       setActiveTab(btn);
       try {
         localStorage.setItem("active_category", btn.dataset.categoryId);
