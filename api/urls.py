@@ -19,6 +19,11 @@ urlpatterns = [
         name="anime_list_create",
     ),
     path(
+        "anime/list/category/<int:category_id>/reorder/",
+        views.AnimeReorderApiView.as_view(),
+        name="anime_reorder",
+    ),
+    path(
         "anime/list/category/<int:category_id>/<int:pk>/",
         views.AnimeDetailApiView.as_view(),
         name="anime_detail",

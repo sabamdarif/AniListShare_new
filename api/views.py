@@ -1,7 +1,9 @@
 from django.db.models import Max
 from django.shortcuts import get_object_or_404
-from rest_framework import generics
+from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from core.models import Anime, Category
 
@@ -83,6 +85,36 @@ class AnimeDetailApiView(generics.RetrieveUpdateDestroyAPIView):
         category = instance.category
         instance.delete()
         _reindex_anime_order(category)
+
+
+class AnimeReorderApiView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, category_id):
+        category = get_object_or_404(Category, pk=category_id, user=request.user)
+        ordered_ids = request.data.get("order", [])
+        if not isinstance(ordered_ids, list):
+            return Response(
+                {"detail": "order must be a list of anime IDs"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Validate all IDs belong to this category + user
+        anime_qs = Anime.objects.filter(category=category)
+        valid_ids = set(anime_qs.values_list("id", flat=True))
+
+        for aid in ordered_ids:
+            if aid not in valid_ids:
+                return Response(
+                    {"detail": f"Anime {aid} not found in this category"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        # Bulk update order
+        for idx, aid in enumerate(ordered_ids):
+            Anime.objects.filter(pk=aid).update(order=idx)
+
+        return Response({"status": "ok"})
 
 
 class SearchAnimeApiView(generics.ListAPIView):

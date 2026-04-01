@@ -594,6 +594,325 @@
   });
 
   /* ────────────────────────────────────────────
+   *  Drag-and-drop reorder
+   *
+   *  Desktop: click-and-drag on the # column.
+   *  Mobile:  long-press anywhere on a card.
+   * ──────────────────────────────────────────── */
+
+  var REORDER_API = "/api/anime/list/category/";
+  var MOBILE_HOLD_MS = 400;
+  var DRAG_DEAD_ZONE = 4;
+
+  function getCSRF() {
+    var el = document.querySelector("[name=csrfmiddlewaretoken]");
+    if (el) return el.value;
+    var m = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]*)/);
+    return m ? decodeURIComponent(m[1]) : "";
+  }
+
+  function reorderList(fromIdx, toIdx) {
+    if (fromIdx === toIdx || fromIdx === toIdx - 1) return null;
+    var copy = lastList.slice();
+    var item = copy.splice(fromIdx, 1)[0];
+    var insertAt = toIdx > fromIdx ? toIdx - 1 : toIdx;
+    copy.splice(insertAt, 0, item);
+    return copy;
+  }
+
+  async function persistOrder(newList) {
+    if (!_currentCategoryId || !newList) return;
+    var ids = newList.map(function (a) {
+      return a.id;
+    });
+    try {
+      var resp = await fetch(REORDER_API + _currentCategoryId + "/reorder/", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": getCSRF(),
+        },
+        body: JSON.stringify({ order: ids }),
+      });
+      if (!resp.ok) throw new Error("Reorder failed");
+      lastList = newList;
+      render(lastList);
+    } catch (_) {
+      if (_currentCategoryId) loadCategory(_currentCategoryId);
+    }
+  }
+
+  /* ═══════════════════════════════════════════
+   *  DESKTOP — immediate drag on .col_id
+   * ═══════════════════════════════════════════ */
+  (function () {
+    var state = null;
+
+    function removeIndicator() {
+      var el = tableBody.querySelector(".anime_drop_indicator");
+      if (el) el.remove();
+    }
+
+    function getDropIdx(clientY) {
+      var rows = tableBody.querySelectorAll("tr[data-anime-id]");
+      for (var i = 0; i < rows.length; i++) {
+        var r = rows[i].getBoundingClientRect();
+        if (clientY < r.top + r.height / 2) return i;
+      }
+      return rows.length;
+    }
+
+    function showIndicator(idx) {
+      removeIndicator();
+      var rows = tableBody.querySelectorAll("tr[data-anime-id]");
+      var ind = document.createElement("tr");
+      ind.className = "anime_drop_indicator";
+      ind.innerHTML =
+        '<td colspan="7"><div class="anime_drop_line"></div></td>';
+      if (idx < rows.length) {
+        tableBody.insertBefore(ind, rows[idx]);
+      } else {
+        tableBody.appendChild(ind);
+      }
+    }
+
+    tableBody.addEventListener("mousedown", function (e) {
+      if (e.button !== 0) return;
+      var td = e.target.closest(".col_id");
+      if (!td) return;
+      var tr = td.closest("tr[data-anime-id]");
+      if (!tr) return;
+
+      e.preventDefault();
+
+      var rows = tableBody.querySelectorAll("tr[data-anime-id]");
+      var fromIdx = Array.prototype.indexOf.call(rows, tr);
+      if (fromIdx < 0) return;
+
+      var startX = e.clientX;
+      var startY = e.clientY;
+      var rect = tr.getBoundingClientRect();
+
+      state = {
+        tr: tr,
+        fromIdx: fromIdx,
+        startX: startX,
+        startY: startY,
+        offsetY: e.clientY - rect.top,
+        offsetX: e.clientX - rect.left,
+        ghost: null,
+        dragging: false,
+      };
+    });
+
+    document.addEventListener("mousemove", function (e) {
+      if (!state) return;
+
+      if (!state.dragging) {
+        var dx = Math.abs(e.clientX - state.startX);
+        var dy = Math.abs(e.clientY - state.startY);
+        if (dx < DRAG_DEAD_ZONE && dy < DRAG_DEAD_ZONE) return;
+
+        // Activate drag
+        state.dragging = true;
+        state.tr.classList.add("anime_dragging");
+        document.body.classList.add("anime_reorder_active");
+
+        var ghost = state.tr.cloneNode(true);
+        ghost.className = "anime_drag_ghost";
+        ghost.style.width = state.tr.offsetWidth + "px";
+        document.body.appendChild(ghost);
+        state.ghost = ghost;
+      }
+
+      e.preventDefault();
+      state.ghost.style.top = e.clientY - state.offsetY + "px";
+      state.ghost.style.left = e.clientX - state.offsetX + "px";
+      showIndicator(getDropIdx(e.clientY));
+    });
+
+    document.addEventListener("mouseup", function (e) {
+      if (!state) return;
+      var s = state;
+      state = null;
+
+      if (!s.dragging) return;
+
+      var dropIdx = getDropIdx(e.clientY);
+      removeIndicator();
+      s.tr.classList.remove("anime_dragging");
+      s.ghost.remove();
+      document.body.classList.remove("anime_reorder_active");
+
+      var newList = reorderList(s.fromIdx, dropIdx);
+      if (newList) persistOrder(newList);
+    });
+  })();
+
+  /* ═══════════════════════════════════════════
+   *  MOBILE — long-press anywhere on .m_card
+   * ═══════════════════════════════════════════ */
+  (function () {
+    var state = null;
+    var pressTimer = null;
+
+    function removeIndicator(wrapper) {
+      if (!wrapper) return;
+      var el = wrapper.querySelector(".anime_drop_indicator_mobile");
+      if (el) el.remove();
+    }
+
+    function getDropIdx(wrapper, clientY) {
+      var cards = wrapper.querySelectorAll(".m_card[data-anime-id]");
+      for (var i = 0; i < cards.length; i++) {
+        var r = cards[i].getBoundingClientRect();
+        if (clientY < r.top + r.height / 2) return i;
+      }
+      return cards.length;
+    }
+
+    function showIndicator(wrapper, idx) {
+      removeIndicator(wrapper);
+      var cards = wrapper.querySelectorAll(".m_card[data-anime-id]");
+      var ind = document.createElement("div");
+      ind.className = "anime_drop_indicator_mobile";
+      if (idx < cards.length) {
+        wrapper.insertBefore(ind, cards[idx]);
+      } else {
+        wrapper.appendChild(ind);
+      }
+    }
+
+    function cancelPress() {
+      if (pressTimer) {
+        clearTimeout(pressTimer);
+        pressTimer = null;
+      }
+    }
+
+    function cleanup() {
+      cancelPress();
+      if (state) {
+        state.card.classList.remove("anime_dragging_mobile");
+        if (state.ghost) state.ghost.remove();
+        removeIndicator(state.wrapper);
+        document.body.classList.remove("anime_reorder_active");
+        state = null;
+      }
+    }
+
+    document.addEventListener(
+      "touchstart",
+      function (e) {
+        if (!isMobile()) return;
+        var card = e.target.closest(".m_card[data-anime-id]");
+        if (!card) return;
+        // Don't start drag if tapping edit button
+        if (e.target.closest(".edit_btn")) return;
+
+        var touch = e.touches[0];
+        var startX = touch.clientX;
+        var startY = touch.clientY;
+        var moved = false;
+
+        pressTimer = setTimeout(function () {
+          pressTimer = null;
+          if (moved) return;
+
+          // Haptic feedback
+          if (navigator.vibrate) navigator.vibrate(50);
+
+          var wrapper = document.getElementById("mobile_card_list");
+          if (!wrapper) return;
+          var cards = wrapper.querySelectorAll(".m_card[data-anime-id]");
+          var fromIdx = Array.prototype.indexOf.call(cards, card);
+          if (fromIdx < 0) return;
+
+          var rect = card.getBoundingClientRect();
+          var ghost = card.cloneNode(true);
+          ghost.className = "m_card anime_drag_ghost_mobile";
+          ghost.style.width = rect.width + "px";
+          ghost.style.top = rect.top + "px";
+          ghost.style.left = rect.left + "px";
+          document.body.appendChild(ghost);
+
+          card.classList.add("anime_dragging_mobile");
+          document.body.classList.add("anime_reorder_active");
+
+          state = {
+            card: card,
+            ghost: ghost,
+            wrapper: wrapper,
+            fromIdx: fromIdx,
+            offsetY: touch.clientY - rect.top,
+            offsetX: touch.clientX - rect.left,
+            dropIdx: fromIdx,
+          };
+        }, MOBILE_HOLD_MS);
+
+        // Track movement to cancel press if user scrolls
+        var onTouchMove = function (ev) {
+          var t = ev.touches[0];
+          if (!state) {
+            // Not yet activated — check if user scrolled
+            if (
+              Math.abs(t.clientX - startX) > 10 ||
+              Math.abs(t.clientY - startY) > 10
+            ) {
+              moved = true;
+              cancelPress();
+            }
+          }
+        };
+        card.addEventListener("touchmove", onTouchMove, { passive: true });
+        card.addEventListener(
+          "touchend",
+          function () {
+            cancelPress();
+            card.removeEventListener("touchmove", onTouchMove);
+          },
+          { once: true },
+        );
+        card.addEventListener(
+          "touchcancel",
+          function () {
+            cleanup();
+            card.removeEventListener("touchmove", onTouchMove);
+          },
+          { once: true },
+        );
+      },
+      { passive: true },
+    );
+
+    document.addEventListener(
+      "touchmove",
+      function (e) {
+        if (!state) return;
+        e.preventDefault();
+        var touch = e.touches[0];
+        state.ghost.style.top = touch.clientY - state.offsetY + "px";
+        state.ghost.style.left = touch.clientX - state.offsetX + "px";
+
+        var dropIdx = getDropIdx(state.wrapper, touch.clientY);
+        state.dropIdx = dropIdx;
+        showIndicator(state.wrapper, dropIdx);
+      },
+      { passive: false },
+    );
+
+    document.addEventListener("touchend", function () {
+      if (!state) return;
+      var s = state;
+      cleanup();
+
+      var newList = reorderList(s.fromIdx, s.dropIdx);
+      if (newList) persistOrder(newList);
+    });
+  })();
+
+  /* ────────────────────────────────────────────
    *  Responsive re-render
    * ──────────────────────────────────────────── */
 

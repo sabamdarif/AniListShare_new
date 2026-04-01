@@ -50,6 +50,107 @@
   text-align: center;
   color: var(--text-muted) !important;
   font-weight: 600;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background 0.15s ease;
+}
+
+.col_id:hover {
+  background: var(--surface2);
+  border-radius: 6px;
+}
+
+.col_id:active {
+  cursor: grabbing;
+}
+
+/* ── Drag ghost (desktop) ── */
+.anime_drag_ghost {
+  position: fixed;
+  z-index: 10000;
+  pointer-events: none;
+  opacity: 0.85;
+  background: var(--surface);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    0 0 0 2px var(--accent);
+  border-radius: 8px;
+  transform: scale(1.02);
+  transition: none;
+}
+
+.anime_drag_ghost td {
+  padding: 10px 12px;
+  font-size: 0.85rem;
+  color: var(--text);
+  vertical-align: middle;
+}
+
+.anime_dragging {
+  opacity: 0.3 !important;
+  background: var(--surface2) !important;
+}
+
+.anime_drop_indicator td {
+  padding: 0 !important;
+  height: 4px !important;
+  border: none !important;
+}
+
+.anime_drop_line {
+  height: 3px;
+  background: var(--accent);
+  border-radius: 2px;
+  margin: 0 12px;
+  box-shadow: 0 0 8px var(--accent);
+}
+
+.anime_reorder_active,
+.anime_reorder_active * {
+  cursor: grabbing !important;
+}
+
+/* ── Mobile drag ghost ── */
+.anime_drag_ghost_mobile {
+  position: fixed !important;
+  z-index: 10000;
+  pointer-events: none;
+  opacity: 0.85;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    0 0 0 2px var(--accent);
+  border-radius: 12px;
+  transform: scale(1.03);
+}
+
+/* ── Mobile dragging source ── */
+.anime_dragging_mobile {
+  opacity: 0.3 !important;
+}
+
+.anime_drop_indicator_mobile {
+  height: 3px;
+  background: var(--accent);
+  border-radius: 2px;
+  margin: 2px 0;
+  box-shadow: 0 0 8px var(--accent);
+}
+
+@media (max-width: 768px) {
+  .m_card_id {
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: background 0.15s ease;
+  }
+
+  .m_card_id:active {
+    cursor: grabbing;
+    background: var(--surface2);
+  }
 }
 
 .col_thumb {
