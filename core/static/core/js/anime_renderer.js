@@ -221,9 +221,7 @@ window.AnimeRenderer = (function () {
   }
 
   function renderStars(val) {
-    if (val == null) return '<span class="star_display">\u2014</span>';
-    var rating = parseFloat(val);
-    if (isNaN(rating)) return '<span class="star_display">\u2014</span>';
+    var rating = val != null && !isNaN(parseFloat(val)) ? parseFloat(val) : 0;
     var stars = "";
     for (var i = 1; i <= 5; i++) {
       if (rating >= i) stars += '<span class="star filled">\u2605</span>';
@@ -402,7 +400,10 @@ window.AnimeRenderer = (function () {
         ? a.seasons
         : (a.seasons || []).map(normalizeSeason);
       var seasonsHtml = renderSeasonsMobile(seasons);
-      var rating = a.stars != null ? parseFloat(a.stars).toFixed(1) : "\u2014";
+      var rating =
+        a.stars != null && !isNaN(parseFloat(a.stars))
+          ? parseFloat(a.stars).toFixed(1)
+          : "0.0";
       var safeName = escapeHtml(a.name);
       var displayId = displayIdFn ? displayIdFn(a, idx) : "#" + (idx + 1);
 
