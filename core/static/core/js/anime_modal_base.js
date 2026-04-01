@@ -127,9 +127,7 @@
 
       // Header
       const header = el("div", { className: "aam_header" });
-      header.appendChild(
-        el("span", { className: "aam_title", text: title }),
-      );
+      header.appendChild(el("span", { className: "aam_title", text: title }));
       const closeBtn = el("button", {
         className: "aam_close_btn",
         attrs: { "aria-label": "Close" },
@@ -225,7 +223,7 @@
 
       const seasonsCols = el("div", { className: "aam_seasons_cols" });
       seasonsCols.appendChild(el("span", { text: "Season" }));
-      seasonsCols.appendChild(el("span", { text: "Episodes Watched" }));
+      seasonsCols.appendChild(el("span", { text: "Watched / Total" }));
       seasonsCols.appendChild(el("span", { text: "Season Comment" }));
       seasonSection.appendChild(seasonsCols);
 
@@ -351,8 +349,9 @@
         // Seasons
         if (prefill.seasons && prefill.seasons.length > 0) {
           _seasons = prefill.seasons.map((s) => ({
-            total: s.total_episodes != null ? s.total_episodes : (s.total || 0),
-            watched: s.watched_episodes != null ? s.watched_episodes : (s.watched || 0),
+            total: s.total_episodes != null ? s.total_episodes : s.total || 0,
+            watched:
+              s.watched_episodes != null ? s.watched_episodes : s.watched || 0,
             comment: s.comment || "",
           }));
           renderSeasons();
@@ -452,10 +451,7 @@
     });
 
     document.addEventListener("keydown", (e) => {
-      if (
-        e.key === "Escape" &&
-        OV.classList.contains("aam_visible")
-      ) {
+      if (e.key === "Escape" && OV.classList.contains("aam_visible")) {
         if (suggestions.childElementCount > 0) {
           suggestions.textContent = "";
           e.stopPropagation();
@@ -659,10 +655,22 @@
         }
 
         watchedInput.addEventListener("change", () => {
-          _seasons[i].watched = Math.max(0, +watchedInput.value);
+          const val = Math.max(0, +watchedInput.value);
+          _seasons[i].watched = val;
+          // Clamp: watched cannot exceed total (if total is set)
+          if (_seasons[i].total > 0 && val > _seasons[i].total) {
+            _seasons[i].watched = _seasons[i].total;
+            watchedInput.value = String(_seasons[i].total);
+          }
         });
         totalInput.addEventListener("change", () => {
-          _seasons[i].total = Math.max(0, +totalInput.value);
+          const val = Math.max(0, +totalInput.value);
+          _seasons[i].total = val;
+          // Clamp: if total decreased below watched, adjust watched
+          if (val > 0 && _seasons[i].watched > val) {
+            _seasons[i].watched = val;
+            watchedInput.value = String(val);
+          }
         });
         commentArea.addEventListener("input", () => {
           _seasons[i].comment = commentArea.value;
@@ -813,6 +821,14 @@
         return;
       }
 
+      // Validate: watched episodes must not exceed total
+      for (let i = 0; i < _seasons.length; i++) {
+        if (_seasons[i].total > 0 && _seasons[i].watched > _seasons[i].total) {
+          errorEl.textContent = `Season ${i + 1}: watched episodes cannot exceed total episodes`;
+          return;
+        }
+      }
+
       const payload = {
         name,
         thumbnail_url:
@@ -851,10 +867,7 @@
     if (deleteBtn && cfg.onDelete) {
       deleteBtn.addEventListener("click", async () => {
         if (!_editingAnimeId) return;
-        if (
-          !confirm("Are you sure you want to delete this anime?")
-        )
-          return;
+        if (!confirm("Are you sure you want to delete this anime?")) return;
 
         errorEl.textContent = "";
         deleteBtn.disabled = true;
