@@ -69,6 +69,7 @@ if DEBUG:
         # hot reloading
         "django_browser_reload",
         "django_watchfiles",
+        "silk",
     ]
 
     MIDDLEWARE.insert(
@@ -76,6 +77,9 @@ if DEBUG:
         # hot reloading
         "django_browser_reload.middleware.BrowserReloadMiddleware",
     )
+    MIDDLEWARE += [
+        "silk.middleware.SilkyMiddleware",
+    ]
 
 ROOT_URLCONF = f"{WEBSITE_NAME}.urls"
 

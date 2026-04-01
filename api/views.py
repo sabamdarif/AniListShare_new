@@ -1,22 +1,18 @@
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
+from rest_framework import generics
+from rest_framework.permissions import IsAuthenticated
 
-from core.models import Anime, Category
+from core.models import Anime
 
 from .serializers import AnimeSerializer
 
 
-@login_required
-@api_view(["GET"])
-def list_anime(request, pk):
-    category = get_object_or_404(Category, id=pk, user=request.user)
-    animes = (
-        Anime.objects.filter(category=category)
-        .select_related("category")
-        .prefetch_related("seasons")
-    )
+class AnimeListApiView(generics.ListAPIView):
+    queryset = Anime.objects.prefetch_related("seasons").select_related("category")
+    serializer_class = AnimeSerializer
+    permission_classes = [IsAuthenticated]
 
-    serializer = AnimeSerializer(animes, many=True)
-    return Response(serializer.data)
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.filter(
+            category__user=self.request.user, category_id=self.kwargs["pk"]
+        )

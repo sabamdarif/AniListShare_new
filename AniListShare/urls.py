@@ -30,4 +30,5 @@ if settings.DEBUG:
     urlpatterns += [
         # hot reloading
         path("__reload__/", include("django_browser_reload.urls")),
+        path("silk/", include("silk.urls", namespace="silk")),
     ]

@@ -18,4 +18,5 @@ dependencies = [
 [dependency-groups]
 dev = [
     "django-browser-reload>=1.21.0",
+    "django-silk>=5.5.0",
 ]
