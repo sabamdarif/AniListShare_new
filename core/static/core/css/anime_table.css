@@ -189,6 +189,95 @@
   display: block;
 }
 
+/* ── Thumbnail Placeholder ── */
+.thumb_placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed var(--border);
+  border-radius: 4px;
+  background: var(--surface2);
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.thumb_img_placeholder {
+  width: 56px;
+  height: 78px;
+}
+
+.thumb_placeholder:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface2));
+}
+
+.thumb_load_btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.6rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
+  white-space: nowrap;
+}
+
+.thumb_load_btn i {
+  font-size: 0.7rem;
+}
+
+.thumb_load_btn:hover {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.thumb_load_btn:disabled {
+  cursor: default;
+  pointer-events: none;
+}
+
+.thumb_load_error {
+  color: var(--error, #e55) !important;
+}
+
+.thumb_load_error:hover {
+  color: var(--error, #e55) !important;
+  background: color-mix(
+    in srgb,
+    var(--error, #e55) 10%,
+    transparent
+  ) !important;
+}
+
+/* Loading spinner */
+.thumb_spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: thumbSpin 0.6s linear infinite;
+}
+
+@keyframes thumbSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.thumb_loading {
+  border-color: var(--accent);
+}
+
 .season_wrap {
   display: flex;
   flex-wrap: wrap;
@@ -603,6 +692,21 @@
     object-fit: cover;
     border-radius: 8px;
     flex-shrink: 0;
+  }
+
+  .m_card_thumb_placeholder {
+    width: 90px;
+    min-width: 90px;
+    height: 130px;
+    border-radius: 8px;
+    flex-shrink: 0;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .m_card_thumb_placeholder .thumb_load_btn {
+    font-size: 0.7rem;
+    padding: 6px 10px;
   }
 
   .m_card_body {

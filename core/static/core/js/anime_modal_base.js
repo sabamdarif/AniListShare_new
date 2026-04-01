@@ -832,7 +832,11 @@
       const payload = {
         name,
         thumbnail_url:
-          sanitizeUrl(thumbImg.src) || sanitizeUrl(urlInput.value.trim()),
+          (thumbImg.style.display !== "none"
+            ? sanitizeUrl(thumbImg.src)
+            : "") ||
+          sanitizeUrl(urlInput.value.trim()) ||
+          "",
         language: _languages.join(", "),
         stars: _rating || null,
         seasons: _seasons.map((s, i) => ({

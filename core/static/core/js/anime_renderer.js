@@ -248,17 +248,37 @@ window.AnimeRenderer = (function () {
       .join("");
   }
 
-  function thumbHtml(url, name, cssClass) {
+  function thumbHtml(url, name, cssClass, opts) {
     var safeUrl = sanitizeUrl(url);
-    if (!safeUrl) return "";
+    if (safeUrl) {
+      return (
+        '<img src="' +
+        escapeHtml(safeUrl) +
+        '" alt="' +
+        escapeHtml(name) +
+        '" class="' +
+        cssClass +
+        '" loading="lazy">'
+      );
+    }
+    // No URL — render a placeholder box
+    var o = opts || {};
+    var loadBtn = o.showLoadBtn
+      ? '<button class="thumb_load_btn" type="button"' +
+        ' data-anime-id="' +
+        escapeHtml(String(o.animeId || "")) +
+        '"' +
+        ' data-anime-name="' +
+        escapeHtml(o.animeName || "") +
+        '"' +
+        '><i class="nf nf-md-download"></i> Load</button>'
+      : "";
     return (
-      '<img src="' +
-      escapeHtml(safeUrl) +
-      '" alt="' +
-      escapeHtml(name) +
-      '" class="' +
+      '<div class="thumb_placeholder ' +
       cssClass +
-      '" loading="lazy">'
+      '_placeholder">' +
+      loadBtn +
+      "</div>"
     );
   }
 
@@ -328,7 +348,11 @@ window.AnimeRenderer = (function () {
         (idx + 1) +
         "</td>" +
         '<td class="col_thumb">' +
-        thumbHtml(a.thumbnail_url, a.name, "thumb_img") +
+        thumbHtml(a.thumbnail_url, a.name, "thumb_img", {
+          showLoadBtn: showEdit,
+          animeId: a.id,
+          animeName: a.name,
+        }) +
         "</td>" +
         '<td class="col_name">' +
         safeName +
@@ -386,7 +410,11 @@ window.AnimeRenderer = (function () {
         '<div class="m_card"' +
         (showEdit ? ' data-anime-id="' + a.id + '"' : "") +
         ">" +
-        thumbHtml(a.thumbnail_url, a.name, "m_card_thumb") +
+        thumbHtml(a.thumbnail_url, a.name, "m_card_thumb", {
+          showLoadBtn: showEdit,
+          animeId: a.id,
+          animeName: a.name,
+        }) +
         '<div class="m_card_body">' +
         '<span class="m_card_id">' +
         escapeHtml(displayId) +
@@ -611,6 +639,104 @@ window.AnimeRenderer = (function () {
     requestAnimationFrame(function () {
       overlay.classList.add("m_popup_visible");
     });
+  });
+
+  // ── Thumbnail Load button handler ──
+  function getCSRF() {
+    var el = document.querySelector("[name=csrfmiddlewaretoken]");
+    if (el) return el.value;
+    var m = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]*)/);
+    return m ? decodeURIComponent(m[1]) : "";
+  }
+
+  function getCurrentCategoryId() {
+    var tab = document.querySelector(".category_tab.active");
+    if (tab) {
+      var wrapper = tab.closest(".category_tab_wrapper");
+      if (wrapper && wrapper.dataset.categoryId) {
+        return wrapper.dataset.categoryId;
+      }
+      return tab.dataset.categoryId || null;
+    }
+    return null;
+  }
+
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".thumb_load_btn");
+    if (!btn) return;
+    e.stopPropagation();
+
+    var animeId = btn.getAttribute("data-anime-id");
+    var animeName = btn.getAttribute("data-anime-name");
+    if (!animeId || !animeName) return;
+
+    var catId = getCurrentCategoryId();
+    if (!catId) return;
+
+    var placeholder = btn.closest(".thumb_placeholder");
+    if (!placeholder) return;
+
+    // Show loading state
+    btn.disabled = true;
+    btn.innerHTML = '<span class="thumb_spinner"></span>';
+    placeholder.classList.add("thumb_loading");
+
+    fetch(
+      "https://api.jikan.moe/v4/anime?q=" +
+        encodeURIComponent(animeName) +
+        "&limit=1",
+    )
+      .then(function (resp) {
+        if (!resp.ok) throw new Error("Jikan HTTP " + resp.status);
+        return resp.json();
+      })
+      .then(function (jikanData) {
+        var results = jikanData.data || [];
+        if (!results.length) throw new Error("No results found");
+
+        var item = results[0];
+        var thumbUrl =
+          (item.images && item.images.jpg && item.images.jpg.image_url) || "";
+        if (!thumbUrl) throw new Error("No thumbnail found");
+
+        // Save to DB via PATCH
+        return fetch(
+          "/api/anime/list/category/" + catId + "/" + animeId + "/",
+          {
+            method: "PATCH",
+            credentials: "same-origin",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": getCSRF(),
+            },
+            body: JSON.stringify({ thumbnail_url: thumbUrl }),
+          },
+        ).then(function (patchResp) {
+          if (!patchResp.ok) throw new Error("Save failed");
+          return thumbUrl;
+        });
+      })
+      .then(function (thumbUrl) {
+        // Determine the right CSS class from the placeholder
+        var isMobileThumb = placeholder.classList.contains(
+          "m_card_thumb_placeholder",
+        );
+        var imgClass = isMobileThumb ? "m_card_thumb" : "thumb_img";
+
+        var img = document.createElement("img");
+        img.src = thumbUrl;
+        img.alt = animeName;
+        img.className = imgClass;
+        img.loading = "lazy";
+
+        placeholder.replaceWith(img);
+      })
+      .catch(function (err) {
+        placeholder.classList.remove("thumb_loading");
+        btn.disabled = false;
+        btn.innerHTML = '<i class="nf nf-md-alert_circle_outline"></i> Retry';
+        btn.classList.add("thumb_load_error");
+      });
   });
 
   return AnimeRenderer;
