@@ -146,17 +146,26 @@
       saveBtn.disabled = true;
       deleteBtn.disabled = true;
       try {
-        const r = await fetch("/api/edit-category/", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": CSRF,
+        const r = await fetch(
+          `/api/anime/category/${encodeURIComponent(editingCategoryId)}/`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": CSRF,
+            },
+            body: JSON.stringify({ name }),
           },
-          body: JSON.stringify({ category_id: editingCategoryId, name }),
-        });
-        const j = await r.json();
+        );
+        const j = await r.json().catch(() => null);
         if (!r.ok) {
-          errorEl.textContent = j.error || "Save failed";
+          let msg = "Save failed";
+          if (j) {
+            if (j.detail) msg = j.detail;
+            else if (j.name) msg = Array.isArray(j.name) ? j.name[0] : j.name;
+            else if (j.non_field_errors) msg = j.non_field_errors[0];
+          }
+          errorEl.textContent = msg;
           return;
         }
         close();
@@ -183,17 +192,18 @@
       deleteBtn.disabled = true;
 
       try {
-        const r = await fetch("/api/delete-category/", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": CSRF,
+        const r = await fetch(
+          `/api/anime/category/${encodeURIComponent(editingCategoryId)}/`,
+          {
+            method: "DELETE",
+            headers: {
+              "X-CSRFToken": CSRF,
+            },
           },
-          body: JSON.stringify({ category_id: editingCategoryId }),
-        });
-        const j = await r.json();
+        );
         if (!r.ok) {
-          errorEl.textContent = j.error || "Delete failed";
+          const j = await r.json().catch(() => null);
+          errorEl.textContent = (j && j.detail) || "Delete failed";
           return;
         }
         close();

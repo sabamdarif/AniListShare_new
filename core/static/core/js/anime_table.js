@@ -483,23 +483,6 @@
   }
 
   /* ────────────────────────────────────────────
-   *  Pending queue support
-   * ──────────────────────────────────────────── */
-
-  function pendingToAnime(q, idx) {
-    return normalizeAnime({
-      id: q._tempId || "pending_" + idx,
-      name: q.name,
-      thumbnail_url: q.thumbnail_url || "",
-      language: q.language || "",
-      stars: q.stars,
-      order: 0,
-      seasons: q.seasons || [],
-      _pending: true,
-    });
-  }
-
-  /* ────────────────────────────────────────────
    *  API communication
    * ──────────────────────────────────────────── */
 
@@ -526,15 +509,7 @@
       var serverList = Array.isArray(data) ? data : data.results || [];
       var normalized = serverList.map(normalizeAnime);
 
-      /* Merge pending queue items for this category */
-      var pending = [];
-      if (window.AnimeSaveQueue) {
-        pending = window.AnimeSaveQueue.getPending(catId).map(function (q, i) {
-          return pendingToAnime(q, i);
-        });
-      }
-
-      render(normalized.concat(pending));
+      render(normalized);
     } catch (_) {
       if (isMobile()) {
         removeMobileList();
@@ -557,19 +532,12 @@
   }
 
   /* ────────────────────────────────────────────
-   *  Global refresh & sync events
+   *  Global refresh
    * ──────────────────────────────────────────── */
 
   window.refreshCurrentCategory = function () {
     if (_currentCategoryId != null) loadCategory(_currentCategoryId);
   };
-
-  window.addEventListener("anime-sync", function (e) {
-    var detail = e.detail || {};
-    if (detail.type === "flush-ok" && _currentCategoryId != null) {
-      loadCategory(_currentCategoryId);
-    }
-  });
 
   /* ────────────────────────────────────────────
    *  Responsive re-render

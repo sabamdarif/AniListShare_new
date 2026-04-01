@@ -101,7 +101,7 @@
 
       saveBtn.disabled = true;
       try {
-        const r = await fetch("/api/add-category/", {
+        const r = await fetch("/api/anime/category/", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -109,15 +109,24 @@
           },
           body: JSON.stringify({ name }),
         });
-        const j = await r.json();
+        const j = await r.json().catch(() => null);
         if (!r.ok) {
-          errorEl.textContent = j.error || "Save failed";
+          // DRF field errors: {name: ["error"]} or {detail: "error"}
+          let msg = "Save failed";
+          if (j) {
+            if (j.detail) msg = j.detail;
+            else if (j.name) msg = Array.isArray(j.name) ? j.name[0] : j.name;
+            else if (j.non_field_errors) msg = j.non_field_errors[0];
+          }
+          errorEl.textContent = msg;
           return;
         }
         close();
         // Set localStorage to new category so it becomes active after reload
-        if (j.category_id) {
-          try { localStorage.setItem("active_category", String(j.category_id)); } catch(e) {}
+        if (j && j.id) {
+          try {
+            localStorage.setItem("active_category", String(j.id));
+          } catch (e) {}
         }
         location.reload();
       } catch {
