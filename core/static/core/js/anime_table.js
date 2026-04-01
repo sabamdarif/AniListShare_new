@@ -1,18 +1,70 @@
 (function () {
-  const tabsContainer = document.getElementById("category_tabs");
-  const tableBody = document.getElementById("anime_table_body");
-  const tableEl = document.getElementById("anime_table");
+  "use strict";
+
+  var tabsContainer = document.getElementById("category_tabs");
+  var tableBody = document.getElementById("anime_table_body");
+  var tableEl = document.getElementById("anime_table");
   if (!tabsContainer || !tableBody || !tableEl) return;
 
-  const tabs = tabsContainer.querySelectorAll(".category_tab");
-  const MOBILE_BP = 768;
-  let lastList = [];
-  let _currentCategoryId = null;
+  var tabs = tabsContainer.querySelectorAll(".category_tab");
+  var MOBILE_BP = 768;
+  var lastList = [];
+  var _currentCategoryId = null;
 
-  const isMobile = () => window.innerWidth <= MOBILE_BP;
+  var isMobile = function () {
+    return window.innerWidth <= MOBILE_BP;
+  };
+
+  function escapeHtml(str) {
+    if (str == null) return "";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#x27;");
+  }
+
+  /**
+   * Only allow http / https URLs for thumbnails.
+   * Blocks javascript:, data:, vbscript:, etc.
+   */
+  function sanitizeUrl(url) {
+    if (!url) return "";
+    try {
+      var parsed = new URL(url);
+      if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+        return parsed.href;
+      }
+    } catch (_) {
+      /* invalid URL */
+    }
+    return "";
+  }
+
+  /* ────────────────────────────────────────────
+   *  Image-error handler (replaces inline onerror)
+   * ──────────────────────────────────────────── */
+  document.addEventListener(
+    "error",
+    function (e) {
+      if (
+        e.target.tagName === "IMG" &&
+        (e.target.classList.contains("thumb_img") ||
+          e.target.classList.contains("m_card_thumb"))
+      ) {
+        e.target.style.display = "none";
+      }
+    },
+    true,
+  );
+
+  /* ────────────────────────────────────────────
+   *  Tab handling
+   * ──────────────────────────────────────────── */
 
   function setActiveTab(btn) {
-    tabs.forEach((t) => {
+    tabs.forEach(function (t) {
       t.classList.remove("active");
       if (
         t.parentElement &&
@@ -30,112 +82,201 @@
     }
   }
 
+  /* ────────────────────────────────────────────
+   *  Skeleton loading
+   * ──────────────────────────────────────────── */
+
   function showSkeleton(rows) {
+    var i, html;
     if (isMobile()) {
       tableEl.style.display = "none";
-      let wrapper = document.getElementById("mobile_card_list");
+      var wrapper = document.getElementById("mobile_card_list");
       if (!wrapper) {
         wrapper = document.createElement("div");
         wrapper.id = "mobile_card_list";
         wrapper.className = "mobile_card_list";
         tableEl.parentElement.appendChild(wrapper);
       }
-      let html = "";
-      for (let i = 0; i < rows; i++) {
-        html += `<div class="m_card m_card_skel">
-          <div class="skel skel_thumb_m"></div>
-          <div class="m_card_body">
-            <div class="skel skel_text" style="width:60%"></div>
-            <div class="skel skel_text" style="width:80%;margin-top:6px"></div>
-            <div class="skel skel_badge" style="margin-top:8px"></div>
-          </div>
-        </div>`;
+      html = "";
+      for (i = 0; i < rows; i++) {
+        html +=
+          '<div class="m_card m_card_skel">' +
+          '<div class="skel skel_thumb_m"></div>' +
+          '<div class="m_card_body">' +
+          '<div class="skel skel_text" style="width:60%"></div>' +
+          '<div class="skel skel_text" style="width:80%;margin-top:6px"></div>' +
+          '<div class="skel skel_badge" style="margin-top:8px"></div>' +
+          "</div></div>";
       }
       wrapper.innerHTML = html;
     } else {
       removeMobileList();
       tableEl.style.display = "";
-      let html = "";
-      for (let i = 0; i < rows; i++) {
-        html += `<tr class="skeleton_row">
-          <td class="col_id"><span class="skel"></span></td>
-          <td class="col_thumb"><span class="skel skel_thumb"></span></td>
-          <td class="col_name"><span class="skel skel_text"></span></td>
-          <td class="col_season"><span class="skel skel_badge"></span></td>
-          <td class="col_lang"><span class="skel skel_badge"></span></td>
-          <td class="col_stars"><span class="skel skel_text_sm"></span></td>
-          <td class="col_edit"><span class="skel skel_btn"></span></td>
-        </tr>`;
+      html = "";
+      for (i = 0; i < rows; i++) {
+        html +=
+          '<tr class="skeleton_row">' +
+          '<td class="col_id"><span class="skel"></span></td>' +
+          '<td class="col_thumb"><span class="skel skel_thumb"></span></td>' +
+          '<td class="col_name"><span class="skel skel_text"></span></td>' +
+          '<td class="col_season"><span class="skel skel_badge"></span></td>' +
+          '<td class="col_lang"><span class="skel skel_badge"></span></td>' +
+          '<td class="col_stars"><span class="skel skel_text_sm"></span></td>' +
+          '<td class="col_edit"><span class="skel skel_btn"></span></td>' +
+          "</tr>";
       }
       tableBody.innerHTML = html;
     }
   }
 
   function removeMobileList() {
-    const el = document.getElementById("mobile_card_list");
+    var el = document.getElementById("mobile_card_list");
     if (el) el.remove();
   }
 
-  function parseLanguages(raw) {
-    if (!raw) return [];
-    const map = {
-      jap: "Japanese",
-      japanese: "Japanese",
-      jp: "Japanese",
-      eng: "English",
-      english: "English",
-      en: "English",
-      kor: "Korean",
-      korean: "Korean",
-      chi: "Chinese",
-      chinese: "Chinese",
+  /* ────────────────────────────────────────────
+   *  Data normalisation
+   *
+   *  The API returns seasons with:
+   *    total_episodes, watched_episodes, is_completed
+   *  Internal render functions expect:
+   *    total, watched, completed
+   * ──────────────────────────────────────────── */
+
+  function normalizeSeason(s) {
+    var total =
+      s.total_episodes != null
+        ? Number(s.total_episodes)
+        : Number(s.total || 0);
+    var watched =
+      s.watched_episodes != null
+        ? Number(s.watched_episodes)
+        : Number(s.watched || 0);
+    var completed =
+      s.is_completed != null
+        ? Boolean(s.is_completed)
+        : s.completed != null
+          ? Boolean(s.completed)
+          : total > 0 && watched >= total;
+
+    return {
+      number: Number(s.number) || 1,
+      total: total,
+      watched: watched,
+      completed: completed,
+      comment: s.comment || "",
     };
-    return raw
-      .split(",")
-      .map((l) => l.trim().toLowerCase())
-      .filter(Boolean)
-      .map((l) => map[l] || l.charAt(0).toUpperCase() + l.slice(1));
   }
 
-  function escapeHtml(str) {
-    const d = document.createElement("div");
-    d.textContent = str;
-    return d.innerHTML;
+  function normalizeAnime(raw) {
+    return {
+      id: raw.id,
+      name: raw.name || "",
+      thumbnail_url: raw.thumbnail_url || "",
+      language: raw.language || "",
+      stars: raw.stars,
+      order: raw.order || 0,
+      seasons: (raw.seasons || []).map(normalizeSeason),
+      _pending: Boolean(raw._pending),
+    };
   }
+
+  /* ────────────────────────────────────────────
+   *  Language parsing
+   * ──────────────────────────────────────────── */
+
+  var LANG_MAP = {
+    jap: "Japanese",
+    japanese: "Japanese",
+    jp: "Japanese",
+    eng: "English",
+    english: "English",
+    en: "English",
+    kor: "Korean",
+    korean: "Korean",
+    chi: "Chinese",
+    chinese: "Chinese",
+  };
+
+  function parseLanguages(raw) {
+    if (!raw) return [];
+    return raw
+      .split(",")
+      .map(function (l) {
+        return l.trim().toLowerCase();
+      })
+      .filter(Boolean)
+      .map(function (l) {
+        return LANG_MAP[l] || l.charAt(0).toUpperCase() + l.slice(1);
+      });
+  }
+
+  /* ────────────────────────────────────────────
+   *  Rendering helpers
+   * ──────────────────────────────────────────── */
 
   function hasSeasonComment(s) {
     return s.comment != null && String(s.comment).trim().length > 0;
   }
 
   function renderSeasonsDesktop(seasons) {
-    if (!seasons || !seasons.length)
-      return '<span class="season_pill" style="opacity:.5">—</span>';
+    if (!seasons || !seasons.length) {
+      return '<span class="season_pill" style="opacity:.5">\u2014</span>';
+    }
 
     return seasons
-      .map((s) => {
-        const has = hasSeasonComment(s);
-        const icon = has
+      .map(function (s) {
+        var has = hasSeasonComment(s);
+        var icon = has
           ? '<i class="nf nf-fa-comment season_comment_icon"></i>'
           : "";
-        const attr = has
-          ? ` data-comment="${escapeHtml(String(s.comment))}" data-season="S${s.number}"`
+        var attr = has
+          ? ' data-comment="' +
+            escapeHtml(s.comment) +
+            '" data-season="S' +
+            escapeHtml(String(s.number)) +
+            '"'
           : "";
-        const cls = has ? " season_has_comment" : "";
+        var cls = has ? " season_has_comment" : "";
+        var num = escapeHtml(String(s.number));
 
         if (s.completed) {
-          return `<span class="season_pill season_has_tooltip${cls}"${attr}>S${s.number}<span class="s_check">✓</span>${icon}</span>`;
+          return (
+            '<span class="season_pill season_has_tooltip' +
+            cls +
+            '"' +
+            attr +
+            ">S" +
+            num +
+            '<span class="s_check">\u2713</span>' +
+            icon +
+            "</span>"
+          );
         }
-        const pct = s.total > 0 ? Math.round((s.watched / s.total) * 100) : 0;
-        return `<span class="season_progress_box season_has_tooltip${cls}"${attr}>
-          <span class="season_progress_top">
-            <span class="season_progress_label">S${s.number}</span>
-            <span class="season_progress_frac">${s.watched}/${s.total}</span>
-          </span>
-          <span class="season_progress_track">
-            <span class="season_progress_fill" style="width:${pct}%"></span>
-          </span>
-          ${icon}
-        </span>`;
+
+        var pct = s.total > 0 ? Math.round((s.watched / s.total) * 100) : 0;
+        return (
+          '<span class="season_progress_box season_has_tooltip' +
+          cls +
+          '"' +
+          attr +
+          ">" +
+          '<span class="season_progress_top">' +
+          '<span class="season_progress_label">S' +
+          num +
+          "</span>" +
+          '<span class="season_progress_frac">' +
+          Number(s.watched) +
+          "/" +
+          Number(s.total) +
+          "</span></span>" +
+          '<span class="season_progress_track">' +
+          '<span class="season_progress_fill" style="width:' +
+          pct +
+          '%"></span></span>' +
+          icon +
+          "</span>"
+        );
       })
       .join("");
   }
@@ -143,42 +284,80 @@
   function renderSeasonsMobile(seasons) {
     if (!seasons || !seasons.length) return "";
     return seasons
-      .map((s) => {
-        const pct = s.completed ? 100 : Math.round((s.watched / s.total) * 100);
-        const checkmark = s.completed
-          ? '<span class="m_season_check">✓</span>'
+      .map(function (s) {
+        var pct = s.completed
+          ? 100
+          : s.total > 0
+            ? Math.round((s.watched / s.total) * 100)
+            : 0;
+        var checkmark = s.completed
+          ? '<span class="m_season_check">\u2713</span>'
           : "";
-        const has = hasSeasonComment(s);
-        const icon = has
+        var has = hasSeasonComment(s);
+        var icon = has
           ? '<i class="nf nf-fa-comment m_season_comment_icon"></i>'
           : "";
-        const attr = has
-          ? ` data-comment="${escapeHtml(String(s.comment))}" data-season="Season ${s.number}"`
+        var attr = has
+          ? ' data-comment="' +
+            escapeHtml(s.comment) +
+            '" data-season="Season ' +
+            escapeHtml(String(s.number)) +
+            '"'
           : "";
-        const label = s.completed
-          ? `Season ${s.number}`
-          : `Season ${s.number} <span class="m_season_progress_text">${s.watched}/${s.total}</span>`;
-        return `<div class="m_season_item m_season_has_popup"${attr}>
-                  <div class="m_season_label">${label}${checkmark}${icon}</div>
-                  <div class="m_season_bar_track">
-                    <div class="m_season_bar_fill${s.completed ? " m_bar_done" : ""}" style="width:${pct}%"></div>
-                  </div>
-                </div>`;
+        var num = escapeHtml(String(s.number));
+        var label = s.completed
+          ? "Season " + num
+          : "Season " +
+            num +
+            ' <span class="m_season_progress_text">' +
+            Number(s.watched) +
+            "/" +
+            Number(s.total) +
+            "</span>";
+
+        return (
+          '<div class="m_season_item m_season_has_popup"' +
+          attr +
+          ">" +
+          '<div class="m_season_label">' +
+          label +
+          checkmark +
+          icon +
+          "</div>" +
+          '<div class="m_season_bar_track">' +
+          '<div class="m_season_bar_fill' +
+          (s.completed ? " m_bar_done" : "") +
+          '" style="width:' +
+          pct +
+          '%"></div></div></div>'
+        );
       })
       .join("");
   }
 
   function renderStars(val) {
-    if (val == null) return '<span class="star_display">—</span>';
-    const rating = parseFloat(val);
-    let stars = "";
-    for (let i = 1; i <= 5; i++) {
-      if (rating >= i) stars += '<span class="star filled">★</span>';
-      else if (rating >= i - 0.5) stars += '<span class="star half">★</span>';
-      else stars += '<span class="star empty">★</span>';
+    if (val == null) return '<span class="star_display">\u2014</span>';
+    var rating = parseFloat(val);
+    if (isNaN(rating)) return '<span class="star_display">\u2014</span>';
+    var stars = "";
+    for (var i = 1; i <= 5; i++) {
+      if (rating >= i) stars += '<span class="star filled">\u2605</span>';
+      else if (rating >= i - 0.5)
+        stars += '<span class="star half">\u2605</span>';
+      else stars += '<span class="star empty">\u2605</span>';
     }
-    return `<span class="star_display">${stars}<span class="star_num">${rating.toFixed(1)}</span></span>`;
+    return (
+      '<span class="star_display">' +
+      stars +
+      '<span class="star_num">' +
+      rating.toFixed(1) +
+      "</span></span>"
+    );
   }
+
+  /* ────────────────────────────────────────────
+   *  Main renderers
+   * ──────────────────────────────────────────── */
 
   function renderTable(animeList) {
     removeMobileList();
@@ -188,35 +367,56 @@
         '<tr><td colspan="7" class="empty_msg">No anime found in this category.</td></tr>';
       return;
     }
-    let html = "";
-    animeList.forEach((a, idx) => {
-      const langs = parseLanguages(a.language);
-      const seasonBadges = renderSeasonsDesktop(a.seasons);
-      const langBadges = langs
-        .map((l) => `<span class="badge badge_lang">${l}</span>`)
+    var html = "";
+    animeList.forEach(function (a, idx) {
+      var langs = parseLanguages(a.language);
+      var seasonBadges = renderSeasonsDesktop(a.seasons);
+      var langBadges = langs
+        .map(function (l) {
+          return '<span class="badge badge_lang">' + escapeHtml(l) + "</span>";
+        })
         .join("");
-      html += `<tr>
-        <td class="col_id">${idx + 1}</td>
-        <td class="col_thumb">
-          <img src="${a.thumbnail_url}" alt="${a.name}" class="thumb_img" loading="lazy" onerror="this.style.display='none'">
-        </td>
-        <td class="col_name">${a.name}</td>
-        <td class="col_season"><div class="season_wrap">${seasonBadges}</div></td>
-        <td class="col_lang"><div class="badge_wrap">${langBadges}</div></td>
-        <td class="col_stars">${renderStars(a.stars)}</td>
-        <td class="col_edit">
-          <button class="edit_btn" title="Edit">
-            <i class="nf nf-fa-pencil"></i>
-          </button>
-        </td>
-      </tr>`;
+      var safeUrl = sanitizeUrl(a.thumbnail_url);
+      var safeName = escapeHtml(a.name);
+      var thumbHtml = safeUrl
+        ? '<img src="' +
+          escapeHtml(safeUrl) +
+          '" alt="' +
+          safeName +
+          '" class="thumb_img" loading="lazy">'
+        : "";
+
+      html +=
+        "<tr>" +
+        '<td class="col_id">' +
+        (idx + 1) +
+        "</td>" +
+        '<td class="col_thumb">' +
+        thumbHtml +
+        "</td>" +
+        '<td class="col_name">' +
+        safeName +
+        "</td>" +
+        '<td class="col_season"><div class="season_wrap">' +
+        seasonBadges +
+        "</div></td>" +
+        '<td class="col_lang"><div class="badge_wrap">' +
+        langBadges +
+        "</div></td>" +
+        '<td class="col_stars">' +
+        renderStars(a.stars) +
+        "</td>" +
+        '<td class="col_edit">' +
+        '<button class="edit_btn" title="Edit">' +
+        '<i class="nf nf-fa-pencil"></i></button></td>' +
+        "</tr>";
     });
     tableBody.innerHTML = html;
   }
 
   function renderCards(animeList) {
     tableEl.style.display = "none";
-    let wrapper = document.getElementById("mobile_card_list");
+    var wrapper = document.getElementById("mobile_card_list");
     if (!wrapper) {
       wrapper = document.createElement("div");
       wrapper.id = "mobile_card_list";
@@ -228,27 +428,50 @@
         '<p class="empty_msg">No anime found in this category.</p>';
       return;
     }
-    let html = "";
-    animeList.forEach((a, idx) => {
-      const langs = parseLanguages(a.language);
-      const langBadges = langs
-        .map((l) => `<span class="badge badge_lang">${l}</span>`)
+    var html = "";
+    animeList.forEach(function (a, idx) {
+      var langs = parseLanguages(a.language);
+      var langBadges = langs
+        .map(function (l) {
+          return '<span class="badge badge_lang">' + escapeHtml(l) + "</span>";
+        })
         .join("");
-      const seasonsHtml = renderSeasonsMobile(a.seasons);
-      const rating = a.stars != null ? parseFloat(a.stars).toFixed(1) : "—";
-      html += `<div class="m_card">
-        <img src="${a.thumbnail_url}" alt="${a.name}" class="m_card_thumb" loading="lazy" onerror="this.style.display='none'">
-        <div class="m_card_body">
-          <span class="m_card_id">ID: ${a.id || idx + 1}</span>
-          <h3 class="m_card_title">${a.name}</h3>
-          <div class="m_card_seasons">${seasonsHtml}</div>
-          <div class="badge_wrap m_card_langs">${langBadges}</div>
-          <div class="m_card_footer">
-            <span class="m_card_rating"><span class="star filled">★</span> ${rating}</span>
-            <button class="edit_btn" title="Edit"><i class="nf nf-fa-pencil"></i></button>
-          </div>
-        </div>
-      </div>`;
+      var seasonsHtml = renderSeasonsMobile(a.seasons);
+      var rating = a.stars != null ? parseFloat(a.stars).toFixed(1) : "\u2014";
+      var safeUrl = sanitizeUrl(a.thumbnail_url);
+      var safeName = escapeHtml(a.name);
+      var displayId = escapeHtml(String(a.id || idx + 1));
+      var thumbHtml = safeUrl
+        ? '<img src="' +
+          escapeHtml(safeUrl) +
+          '" alt="' +
+          safeName +
+          '" class="m_card_thumb" loading="lazy">'
+        : "";
+
+      html +=
+        '<div class="m_card">' +
+        thumbHtml +
+        '<div class="m_card_body">' +
+        '<span class="m_card_id">ID: ' +
+        displayId +
+        "</span>" +
+        '<h3 class="m_card_title">' +
+        safeName +
+        "</h3>" +
+        '<div class="m_card_seasons">' +
+        seasonsHtml +
+        "</div>" +
+        '<div class="badge_wrap m_card_langs">' +
+        langBadges +
+        "</div>" +
+        '<div class="m_card_footer">' +
+        '<span class="m_card_rating"><span class="star filled">\u2605</span> ' +
+        escapeHtml(String(rating)) +
+        "</span>" +
+        '<button class="edit_btn" title="Edit">' +
+        '<i class="nf nf-fa-pencil"></i></button>' +
+        "</div></div></div>";
     });
     wrapper.innerHTML = html;
   }
@@ -259,54 +482,69 @@
     else renderTable(animeList);
   }
 
-  /**
-   * Convert a pending queue item into the shape that render() expects.
-   */
+  /* ────────────────────────────────────────────
+   *  Pending queue support
+   * ──────────────────────────────────────────── */
+
   function pendingToAnime(q, idx) {
-    return {
+    return normalizeAnime({
       id: q._tempId || "pending_" + idx,
       name: q.name,
       thumbnail_url: q.thumbnail_url || "",
       language: q.language || "",
       stars: q.stars,
-      seasons: (q.seasons || []).map((s) => ({
-        number: s.number,
-        total: s.total_episodes || 0,
-        watched: s.watched_episodes || 0,
-        completed:
-          s.total_episodes > 0 && s.watched_episodes >= s.total_episodes,
-        comment: s.comment || "",
-      })),
+      order: 0,
+      seasons: q.seasons || [],
       _pending: true,
-    };
+    });
   }
 
-  async function loadCategory(categoryId) {
-    _currentCategoryId = categoryId;
-    showSkeleton(4);
-    try {
-      const res = await fetch(
-        `/api/anime-list/?category_id=${encodeURIComponent(categoryId)}`,
-      );
-      const data = await res.json();
-      const serverList = data.anime || [];
+  /* ────────────────────────────────────────────
+   *  API communication
+   * ──────────────────────────────────────────── */
 
-      // Merge pending queue items for this category
-      let pending = [];
+  async function loadCategory(categoryId) {
+    var catId = parseInt(categoryId, 10);
+    if (isNaN(catId)) return;
+
+    _currentCategoryId = catId;
+    showSkeleton(4);
+
+    try {
+      var res = await fetch("/api/list-anime/category/" + catId + "/", {
+        method: "GET",
+        credentials: "same-origin",
+        headers: { Accept: "application/json" },
+      });
+
+      if (!res.ok) throw new Error("HTTP " + res.status);
+
+      var data = await res.json();
+
+      /* ListAPIView returns a plain array unless pagination is enabled,
+         in which case results live under data.results.                  */
+      var serverList = Array.isArray(data) ? data : data.results || [];
+      var normalized = serverList.map(normalizeAnime);
+
+      /* Merge pending queue items for this category */
+      var pending = [];
       if (window.AnimeSaveQueue) {
-        pending = window.AnimeSaveQueue.getPending(categoryId).map((q, i) =>
-          pendingToAnime(q, i),
-        );
+        pending = window.AnimeSaveQueue.getPending(catId).map(function (q, i) {
+          return pendingToAnime(q, i);
+        });
       }
 
-      render([...serverList, ...pending]);
-    } catch {
+      render(normalized.concat(pending));
+    } catch (_) {
       if (isMobile()) {
         removeMobileList();
-        const w = document.createElement("div");
+        var w = document.createElement("div");
         w.id = "mobile_card_list";
         w.className = "mobile_card_list";
-        w.innerHTML = '<p class="empty_msg">Failed to load anime.</p>';
+        var p = document.createElement("p");
+        p.className = "empty_msg";
+        p.textContent = "Failed to load anime.";
+        w.appendChild(p);
         tableEl.parentElement.appendChild(w);
         tableEl.style.display = "none";
       } else {
@@ -318,56 +556,72 @@
     }
   }
 
-  /* ── expose global refresh for the add-anime modal ── */
+  /* ────────────────────────────────────────────
+   *  Global refresh & sync events
+   * ──────────────────────────────────────────── */
+
   window.refreshCurrentCategory = function () {
-    if (_currentCategoryId != null) {
-      loadCategory(_currentCategoryId);
-    }
+    if (_currentCategoryId != null) loadCategory(_currentCategoryId);
   };
 
-  /* ── listen for sync events to auto-refresh after flush ── */
-  window.addEventListener("anime-sync", (e) => {
-    const { type } = e.detail || {};
-    if (type === "flush-ok" && _currentCategoryId != null) {
+  window.addEventListener("anime-sync", function (e) {
+    var detail = e.detail || {};
+    if (detail.type === "flush-ok" && _currentCategoryId != null) {
       loadCategory(_currentCategoryId);
     }
   });
 
-  let wasMobile = isMobile();
-  window.addEventListener("resize", () => {
-    const nowMobile = isMobile();
+  /* ────────────────────────────────────────────
+   *  Responsive re-render
+   * ──────────────────────────────────────────── */
+
+  var wasMobile = isMobile();
+  window.addEventListener("resize", function () {
+    var nowMobile = isMobile();
     if (nowMobile !== wasMobile) {
       wasMobile = nowMobile;
       if (lastList.length) render(lastList);
     }
   });
 
-  tabs.forEach((btn) => {
-    btn.addEventListener("click", () => {
+  /* ────────────────────────────────────────────
+   *  Tab click handlers & initial load
+   * ──────────────────────────────────────────── */
+
+  tabs.forEach(function (btn) {
+    btn.addEventListener("click", function () {
       setActiveTab(btn);
       try {
         localStorage.setItem("active_category", btn.dataset.categoryId);
-      } catch (e) {}
+      } catch (_) {}
       loadCategory(btn.dataset.categoryId);
     });
   });
 
   if (tabs.length > 0) {
-    // Restore active category from localStorage if available
-    let startTab = tabs[0];
+    var startTab = tabs[0];
     try {
-      const savedId = localStorage.getItem("active_category");
+      var savedId = localStorage.getItem("active_category");
       if (savedId) {
-        const found = [...tabs].find((t) => t.dataset.categoryId === savedId);
+        var found = Array.prototype.find.call(tabs, function (t) {
+          return t.dataset.categoryId === savedId;
+        });
         if (found) startTab = found;
       }
-    } catch (e) {}
+    } catch (_) {}
     setActiveTab(startTab);
     loadCategory(startTab.dataset.categoryId);
   }
 
-  let activeTooltip = null;
-  let hoverTimer = null;
+  /* ────────────────────────────────────────────
+   *  Desktop comment tooltips
+   *
+   *  Built with DOM methods — no innerHTML with
+   *  user content — to prevent XSS.
+   * ──────────────────────────────────────────── */
+
+  var activeTooltip = null;
+  var hoverTimer = null;
 
   function removeTooltip() {
     if (activeTooltip) {
@@ -377,72 +631,87 @@
   }
 
   function showTooltip(anchor) {
-    const comment = anchor.getAttribute("data-comment");
+    var comment = anchor.getAttribute("data-comment");
     if (!comment) return;
     removeTooltip();
 
-    const tip = document.createElement("div");
+    var tip = document.createElement("div");
     tip.className = "season_comment_tooltip";
-    tip.innerHTML = `
-      <div class="season_comment_stem"></div>
-      <div class="season_comment_header">${anchor.getAttribute("data-season") || "Season"} Comment</div>
-      <div class="season_comment_body">${escapeHtml(comment)}</div>
-      <div class="season_comment_footer">
-        <button class="season_comment_close_btn" type="button">Close</button>
-      </div>`;
+
+    var stem = document.createElement("div");
+    stem.className = "season_comment_stem";
+    tip.appendChild(stem);
+
+    var header = document.createElement("div");
+    header.className = "season_comment_header";
+    header.textContent =
+      (anchor.getAttribute("data-season") || "Season") + " Comment";
+    tip.appendChild(header);
+
+    var body = document.createElement("div");
+    body.className = "season_comment_body";
+    body.textContent = comment;
+    tip.appendChild(body);
+
+    var footer = document.createElement("div");
+    footer.className = "season_comment_footer";
+    var closeBtn = document.createElement("button");
+    closeBtn.className = "season_comment_close_btn";
+    closeBtn.type = "button";
+    closeBtn.textContent = "Close";
+    footer.appendChild(closeBtn);
+    tip.appendChild(footer);
+
     document.body.appendChild(tip);
     activeTooltip = tip;
 
-    const rect = anchor.getBoundingClientRect();
-    const stemH = 10;
+    /* Position */
+    var rect = anchor.getBoundingClientRect();
+    var stemH = 10;
     tip.style.visibility = "hidden";
     tip.style.display = "block";
-    const tipRect = tip.getBoundingClientRect();
+    var tipRect = tip.getBoundingClientRect();
     tip.style.visibility = "";
 
-    let left = rect.left + rect.width / 2 - tipRect.width / 2;
+    var left = rect.left + rect.width / 2 - tipRect.width / 2;
     if (left < 8) left = 8;
     if (left + tipRect.width > window.innerWidth - 8)
       left = window.innerWidth - tipRect.width - 8;
-    let top = rect.bottom + stemH;
 
-    tip.style.top = top + window.scrollY + "px";
+    tip.style.top = rect.bottom + stemH + window.scrollY + "px";
     tip.style.left = left + window.scrollX + "px";
 
-    const stem = tip.querySelector(".season_comment_stem");
-    const stemLeft = rect.left + rect.width / 2 - left - 8;
+    var stemLeft = rect.left + rect.width / 2 - left - 8;
     stem.style.left =
       Math.max(12, Math.min(stemLeft, tipRect.width - 28)) + "px";
 
-    tip
-      .querySelector(".season_comment_close_btn")
-      .addEventListener("click", (e) => {
-        e.stopPropagation();
-        removeTooltip();
-      });
+    closeBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      removeTooltip();
+    });
   }
 
-  document.addEventListener("mouseover", (e) => {
+  document.addEventListener("mouseover", function (e) {
     if (isMobile()) return;
     if (activeTooltip && activeTooltip.contains(e.target)) {
       clearTimeout(hoverTimer);
       return;
     }
-    const el = e.target.closest(".season_has_tooltip[data-comment]");
+    var el = e.target.closest(".season_has_tooltip[data-comment]");
     if (el) {
       clearTimeout(hoverTimer);
       showTooltip(el);
     }
   });
 
-  document.addEventListener("mouseout", (e) => {
+  document.addEventListener("mouseout", function (e) {
     if (isMobile()) return;
-    const fromAnchor = e.target.closest(".season_has_tooltip[data-comment]");
-    const fromTooltip =
+    var fromAnchor = e.target.closest(".season_has_tooltip[data-comment]");
+    var fromTooltip =
       activeTooltip &&
       (activeTooltip === e.target || activeTooltip.contains(e.target));
     if (fromAnchor || fromTooltip) {
-      const related = e.relatedTarget;
+      var related = e.relatedTarget;
       if (
         activeTooltip &&
         (activeTooltip === related || activeTooltip.contains(related))
@@ -458,10 +727,10 @@
     }
   });
 
-  document.addEventListener("click", (e) => {
+  document.addEventListener("click", function (e) {
     if (isMobile()) return;
     if (e.target.closest(".season_comment_close_btn")) return;
-    const el = e.target.closest(".season_has_tooltip[data-comment]");
+    var el = e.target.closest(".season_has_tooltip[data-comment]");
     if (el) {
       if (activeTooltip) removeTooltip();
       else showTooltip(el);
@@ -470,7 +739,13 @@
     }
   });
 
-  let activeMobilePopup = null;
+  /* ────────────────────────────────────────────
+   *  Mobile comment popups
+   *
+   *  Also built with DOM methods to avoid XSS.
+   * ──────────────────────────────────────────── */
+
+  var activeMobilePopup = null;
 
   function removeMobilePopup() {
     if (activeMobilePopup) {
@@ -479,8 +754,9 @@
     }
   }
 
-  document.addEventListener("click", (e) => {
+  document.addEventListener("click", function (e) {
     if (!isMobile()) return;
+
     if (
       activeMobilePopup &&
       !activeMobilePopup.contains(e.target) &&
@@ -493,19 +769,41 @@
       removeMobilePopup();
       return;
     }
-    const el = e.target.closest(".m_season_has_popup[data-comment]");
+
+    var el = e.target.closest(".m_season_has_popup[data-comment]");
     if (!el) return;
     removeMobilePopup();
-    const popup = document.createElement("div");
-    popup.className = "m_season_popup_overlay";
-    popup.innerHTML = `
-      <div class="m_season_popup_card">
-        <div class="m_season_popup_title">${el.getAttribute("data-season") || "Season"} Comment</div>
-        <div class="m_season_popup_body">${escapeHtml(el.getAttribute("data-comment"))}</div>
-        <button class="m_season_popup_close" type="button">Close</button>
-      </div>`;
-    document.body.appendChild(popup);
-    activeMobilePopup = popup;
-    requestAnimationFrame(() => popup.classList.add("m_popup_visible"));
+
+    var overlay = document.createElement("div");
+    overlay.className = "m_season_popup_overlay";
+
+    var card = document.createElement("div");
+    card.className = "m_season_popup_card";
+
+    var title = document.createElement("div");
+    title.className = "m_season_popup_title";
+    title.textContent =
+      (el.getAttribute("data-season") || "Season") + " Comment";
+
+    var popupBody = document.createElement("div");
+    popupBody.className = "m_season_popup_body";
+    popupBody.textContent = el.getAttribute("data-comment");
+
+    var closeBtn = document.createElement("button");
+    closeBtn.className = "m_season_popup_close";
+    closeBtn.type = "button";
+    closeBtn.textContent = "Close";
+
+    card.appendChild(title);
+    card.appendChild(popupBody);
+    card.appendChild(closeBtn);
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+    activeMobilePopup = overlay;
+
+    requestAnimationFrame(function () {
+      overlay.classList.add("m_popup_visible");
+    });
   });
 })();
+
