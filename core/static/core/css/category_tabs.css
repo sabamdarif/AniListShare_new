@@ -115,6 +115,12 @@
   }
 }
 
+/* Mobile: toggle via JS click */
+.category_tab_wrapper.category_edit_visible .category_edit_btn {
+  display: flex;
+  animation: fadeInRight 0.2s ease forwards;
+}
+
 @keyframes fadeInRight {
   from {
     opacity: 0;

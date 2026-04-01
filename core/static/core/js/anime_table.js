@@ -931,7 +931,21 @@
 
   tabs.forEach(function (btn) {
     btn.addEventListener("click", function () {
-      if (btn.classList.contains("active")) return;
+      var wrapper = btn.closest(".category_tab_wrapper");
+
+      if (btn.classList.contains("active")) {
+        // Toggle edit button visibility on the active tab
+        if (wrapper) wrapper.classList.toggle("category_edit_visible");
+        return;
+      }
+
+      // Hide any open edit buttons
+      document
+        .querySelectorAll(".category_edit_visible")
+        .forEach(function (el) {
+          el.classList.remove("category_edit_visible");
+        });
+
       setActiveTab(btn);
       try {
         localStorage.setItem("active_category", btn.dataset.categoryId);
