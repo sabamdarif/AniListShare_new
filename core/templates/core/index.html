@@ -129,11 +129,12 @@
         </header>
         <nav class="category_tabs" id="category_tabs">
             {% for cat in categories %}
-                <div class="category_tab_wrapper" data-category-id="{{ cat.id }}">
-                    <button class="category_tab" data-category-id="{{ cat.id }}">{{ cat.name }}</button>
+                <div class="category_tab_wrapper"
+                     data-category-id="{{ cat.user_category_id }}">
+                    <button class="category_tab" data-category-id="{{ cat.user_category_id }}">{{ cat.name }}</button>
                     <button class="category_edit_btn"
                             aria-label="Edit category"
-                            data-category-id="{{ cat.id }}"
+                            data-category-id="{{ cat.user_category_id }}"
                             data-category-name="{{ cat.name }}">
                         <i class="nf nf-fa-pencil"></i>
                     </button>

@@ -56,6 +56,8 @@ class AnimeSerializer(serializers.ModelSerializer):
 
 
 class CategorySerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source="user_category_id", read_only=True)
+
     class Meta:
         model = Category
         fields = ("id", "name", "order")
@@ -63,7 +65,9 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class SearchAnimeSerializer(serializers.ModelSerializer):
-    category_id = serializers.IntegerField(source="category.id", read_only=True)
+    category_id = serializers.IntegerField(
+        source="category.user_category_id", read_only=True
+    )
     category_name = serializers.CharField(source="category.name", read_only=True)
 
     class Meta:

@@ -33,7 +33,7 @@ def shared_list_view(request, token):
 
     data = [
         {
-            "id": cat.id,
+            "id": cat.user_category_id,
             "name": cat.name,
             "animes": AnimeSerializer(cat.animes.all(), many=True).data,
         }

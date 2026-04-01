@@ -6,10 +6,12 @@ class Category(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=200)
     order = models.IntegerField(default=0)
+    user_category_id = models.PositiveIntegerField(default=1)
 
     class Meta:
         ordering = ["order"]
         verbose_name_plural = "categories"
+        unique_together = ("user", "user_category_id")
 
     def __str__(self) -> str:
         return str(self.name)

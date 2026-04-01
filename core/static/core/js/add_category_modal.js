@@ -100,6 +100,8 @@
       }
 
       saveBtn.disabled = true;
+      saveBtn.classList.add("btn_loading");
+      saveBtn.innerHTML = '<span class="btn_spinner"></span> Saving\u2026';
       try {
         const r = await fetch("/api/anime/category/", {
           method: "POST",
@@ -133,6 +135,8 @@
         errorEl.textContent = "Network error";
       } finally {
         saveBtn.disabled = false;
+        saveBtn.classList.remove("btn_loading");
+        saveBtn.textContent = "Add Category";
       }
     });
 

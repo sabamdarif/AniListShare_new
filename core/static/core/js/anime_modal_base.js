@@ -426,9 +426,11 @@
       urlInput.value = "";
       errorEl.textContent = "";
       saveBtn.disabled = false;
+      saveBtn.classList.remove("btn_loading");
       saveBtn.textContent = saveBtnLabel;
       if (deleteBtn) {
         deleteBtn.disabled = false;
+        deleteBtn.classList.remove("btn_loading");
         deleteBtn.textContent = "Delete";
       }
       renderStars();
@@ -900,7 +902,8 @@
       };
 
       saveBtn.disabled = true;
-      saveBtn.textContent = "Saving\u2026";
+      saveBtn.classList.add("btn_loading");
+      saveBtn.innerHTML = '<span class="btn_spinner"></span> Saving\u2026';
       if (deleteBtn) deleteBtn.disabled = true;
 
       try {
@@ -914,6 +917,7 @@
         errorEl.textContent = err.message || "Save failed";
       } finally {
         saveBtn.disabled = false;
+        saveBtn.classList.remove("btn_loading");
         saveBtn.textContent = saveBtnLabel;
         if (deleteBtn) deleteBtn.disabled = false;
       }
@@ -927,7 +931,9 @@
 
         errorEl.textContent = "";
         deleteBtn.disabled = true;
-        deleteBtn.textContent = "Deleting\u2026";
+        deleteBtn.classList.add("btn_loading");
+        deleteBtn.innerHTML =
+          '<span class="btn_spinner"></span> Deleting\u2026';
         saveBtn.disabled = true;
 
         try {
@@ -941,6 +947,7 @@
           errorEl.textContent = err.message || "Delete failed";
         } finally {
           deleteBtn.disabled = false;
+          deleteBtn.classList.remove("btn_loading");
           deleteBtn.textContent = "Delete";
           saveBtn.disabled = false;
         }

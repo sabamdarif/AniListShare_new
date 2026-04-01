@@ -144,6 +144,8 @@
       }
 
       saveBtn.disabled = true;
+      saveBtn.classList.add("btn_loading");
+      saveBtn.innerHTML = '<span class="btn_spinner"></span> Saving\u2026';
       deleteBtn.disabled = true;
       try {
         const r = await fetch(
@@ -174,6 +176,8 @@
         errorEl.textContent = "Network error";
       } finally {
         saveBtn.disabled = false;
+        saveBtn.classList.remove("btn_loading");
+        saveBtn.textContent = "Save";
         deleteBtn.disabled = false;
       }
     });
@@ -190,6 +194,8 @@
       errorEl.textContent = "";
       saveBtn.disabled = true;
       deleteBtn.disabled = true;
+      deleteBtn.classList.add("btn_loading");
+      deleteBtn.innerHTML = '<span class="btn_spinner"></span> Deleting\u2026';
 
       try {
         const r = await fetch(
@@ -222,6 +228,8 @@
       } finally {
         saveBtn.disabled = false;
         deleteBtn.disabled = false;
+        deleteBtn.classList.remove("btn_loading");
+        deleteBtn.textContent = "Delete";
       }
     });
 

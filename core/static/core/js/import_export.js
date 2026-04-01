@@ -353,6 +353,9 @@
       if (!_importFile || _importing) return;
       _importing = true;
       importStartBtn.disabled = true;
+      importStartBtn.classList.add("btn_loading");
+      importStartBtn.innerHTML =
+        '<span class="btn_spinner"></span> Importing\u2026';
       if (importDropzone) importDropzone.style.display = "none";
       if (importFileRemove) importFileRemove.style.display = "none";
       if (importProgressWrapper) importProgressWrapper.classList.add("visible");
@@ -529,6 +532,8 @@
           importStatus.classList.add("visible", "error");
         }
         importStartBtn.disabled = false;
+        importStartBtn.classList.remove("btn_loading");
+        importStartBtn.textContent = "Start Import";
         if (importFileRemove) importFileRemove.style.display = "";
       } finally {
         _importing = false;

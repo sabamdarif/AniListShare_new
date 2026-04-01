@@ -29,17 +29,22 @@ class CategoryListCreateApiView(generics.ListCreateAPIView):
         return super().get_queryset().filter(user=self.request.user)
 
     def perform_create(self, serializer):
-        max_order = Category.objects.filter(user=self.request.user).aggregate(
-            m=Max("order")
-        )["m"]
+        qs = Category.objects.filter(user=self.request.user)
+        max_order = qs.aggregate(m=Max("order"))["m"]
         next_order = (max_order + 1) if max_order is not None else 0
-        serializer.save(user=self.request.user, order=next_order)
+        max_ucid = qs.aggregate(m=Max("user_category_id"))["m"]
+        next_ucid = (max_ucid + 1) if max_ucid is not None else 1
+        serializer.save(
+            user=self.request.user, order=next_order, user_category_id=next_ucid
+        )
 
 
 class CategoryDetailApiView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     permission_classes = [IsAuthenticated]
+    lookup_field = "user_category_id"
+    lookup_url_kwarg = "pk"
 
     def get_queryset(self):
         return super().get_queryset().filter(user=self.request.user)
@@ -65,13 +70,15 @@ class AnimeListCreateApiView(generics.ListCreateAPIView):
             .get_queryset()
             .filter(
                 category__user=self.request.user,
-                category_id=self.kwargs["category_id"],
+                category__user_category_id=self.kwargs["category_id"],
             )
         )
 
     def perform_create(self, serializer):
         category = get_object_or_404(
-            Category, pk=self.kwargs["category_id"], user=self.request.user
+            Category,
+            user_category_id=self.kwargs["category_id"],
+            user=self.request.user,
         )
         # Place new anime at the end of the list
         max_order = Anime.objects.filter(category=category).aggregate(m=Max("order"))[
@@ -92,7 +99,7 @@ class AnimeDetailApiView(generics.RetrieveUpdateDestroyAPIView):
             .get_queryset()
             .filter(
                 category__user=self.request.user,
-                category_id=self.kwargs["category_id"],
+                category__user_category_id=self.kwargs["category_id"],
             )
         )
 
@@ -106,7 +113,9 @@ class AnimeReorderApiView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, category_id):
-        category = get_object_or_404(Category, pk=category_id, user=request.user)
+        category = get_object_or_404(
+            Category, user_category_id=category_id, user=request.user
+        )
         ordered_ids = request.data.get("order", [])
         if not isinstance(ordered_ids, list):
             return Response(
@@ -142,7 +151,9 @@ class CategoryReorderApiView(APIView):
             )
 
         valid_ids = set(
-            Category.objects.filter(user=request.user).values_list("id", flat=True)
+            Category.objects.filter(user=request.user).values_list(
+                "user_category_id", flat=True
+            )
         )
 
         for cid in ordered_ids:
@@ -153,7 +164,9 @@ class CategoryReorderApiView(APIView):
                 )
 
         for idx, cid in enumerate(ordered_ids):
-            Category.objects.filter(pk=cid).update(order=idx)
+            Category.objects.filter(user=request.user, user_category_id=cid).update(
+                order=idx
+            )
 
         return Response({"status": "ok"})
 
