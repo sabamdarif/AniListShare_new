@@ -49,6 +49,16 @@
     background: var(--surface2);
   }
 
+  .m_fab_open .m_fab_option.m_fab_option_disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    filter: grayscale(0.5);
+  }
+
+  .m_fab_open .m_fab_option.m_fab_option_disabled:hover {
+    background: var(--surface);
+  }
+
   .m_fab_open .m_fab_option {
     opacity: 1;
     transform: translateY(0) scale(1);

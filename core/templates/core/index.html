@@ -34,7 +34,7 @@
                 <button type="button" class="header_action_buttons btn_category">
                     <i class="nf nf-fa-folder_plus"></i>Category
                 </button>
-                <button type="button" class="header_action_buttons btn_add_anime">
+                <button type="button" class="header_action_buttons btn_add_anime{% if not categories %} btn_add_anime_disabled{% endif %}">
                     <i class="nf nf-oct-plus"></i>Add Anime
                 </button>
                 <button type="button"
@@ -144,7 +144,7 @@
                 <i class="nf nf-oct-plus"></i> Category
             </button>
             <button type="button"
-                    class="m_fab_option"
+                    class="m_fab_option{% if not categories %} m_fab_option_disabled{% endif %}"
                     id="m_fab_add_anime"
                     aria-label="Add Anime">
                 <i class="nf nf-oct-plus"></i> Add Anime

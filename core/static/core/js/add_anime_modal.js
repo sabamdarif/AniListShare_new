@@ -265,8 +265,33 @@
     const langDrop = OV.querySelector(".aam_lang_dropdown");
     const saveBtn = $(".aam_save_btn");
 
+    /* ── helpers: category gate ── */
+    function hasCategories() {
+      return document.querySelectorAll(".category_tab").length > 0;
+    }
+
+    function updateAddAnimeButtonState() {
+      const disabled = !hasCategories();
+      const deskBtn = document.querySelector(".btn_add_anime");
+      const mobBtn = document.getElementById("m_fab_add_anime");
+      if (deskBtn) {
+        deskBtn.classList.toggle("btn_add_anime_disabled", disabled);
+      }
+      if (mobBtn) {
+        mobBtn.classList.toggle("m_fab_option_disabled", disabled);
+      }
+    }
+    // Expose globally so other scripts (e.g. add_category_modal) can refresh
+    window.updateAddAnimeButtonState = updateAddAnimeButtonState;
+    // Set initial state
+    updateAddAnimeButtonState();
+
     /* ── open / close ── */
     function open() {
+      if (!hasCategories()) {
+        showToast("Please create a category first");
+        return;
+      }
       reset();
       populateCategories();
       OV.style.display = "flex";

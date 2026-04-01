@@ -105,6 +105,17 @@ header {
   filter: none;
 }
 
+.btn_add_anime.btn_add_anime_disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: grayscale(0.5);
+}
+
+.btn_add_anime.btn_add_anime_disabled:hover {
+  background: var(--accent);
+  filter: grayscale(0.5);
+}
+
 .m_header_search_btn {
   display: none;
 }
