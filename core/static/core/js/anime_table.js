@@ -926,6 +926,313 @@
   });
 
   /* ────────────────────────────────────────────
+   *  Category tab drag-and-drop reorder
+   *
+   *  Desktop: click-and-drag on a tab.
+   *  Mobile:  long-press on a tab.
+   * ──────────────────────────────────────────── */
+
+  var CAT_REORDER_API = "/api/anime/category/reorder/";
+  var CAT_HOLD_MS = 400;
+  var CAT_DEAD_ZONE = 4;
+
+  var tabsNav = document.getElementById("category_tabs");
+
+  function getCatWrappers() {
+    return tabsNav ? tabsNav.querySelectorAll(".category_tab_wrapper") : [];
+  }
+
+  function catReorderList(wrappers, fromIdx, toIdx) {
+    if (fromIdx === toIdx || fromIdx === toIdx - 1) return null;
+    var arr = Array.prototype.slice.call(wrappers);
+    var item = arr.splice(fromIdx, 1)[0];
+    var insertAt = toIdx > fromIdx ? toIdx - 1 : toIdx;
+    arr.splice(insertAt, 0, item);
+    return arr;
+  }
+
+  async function persistCatOrder(orderedWrappers) {
+    var ids = orderedWrappers.map(function (w) {
+      return parseInt(w.dataset.categoryId, 10);
+    });
+    try {
+      var resp = await fetch(CAT_REORDER_API, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": getCSRF(),
+        },
+        body: JSON.stringify({ order: ids }),
+      });
+      if (!resp.ok) throw new Error("Reorder failed");
+      // Reload to reflect new tab order from server
+      window.location.reload();
+    } catch (_) {
+      window.location.reload();
+    }
+  }
+
+  // ─── Desktop: immediate drag on category tab ───
+  if (tabsNav) {
+    (function () {
+      var state = null;
+
+      function getCatDropIdx(clientX) {
+        var wrappers = getCatWrappers();
+        for (var i = 0; i < wrappers.length; i++) {
+          var r = wrappers[i].getBoundingClientRect();
+          if (clientX < r.left + r.width / 2) return i;
+        }
+        return wrappers.length;
+      }
+
+      function removeCatIndicator() {
+        var el = tabsNav.querySelector(".cat_drop_indicator");
+        if (el) el.remove();
+      }
+
+      function showCatIndicator(idx) {
+        removeCatIndicator();
+        var wrappers = getCatWrappers();
+        var ind = document.createElement("div");
+        ind.className = "cat_drop_indicator";
+        if (idx < wrappers.length) {
+          tabsNav.insertBefore(ind, wrappers[idx]);
+        } else {
+          tabsNav.appendChild(ind);
+        }
+      }
+
+      tabsNav.addEventListener("mousedown", function (e) {
+        if (e.button !== 0) return;
+        var wrapper = e.target.closest(".category_tab_wrapper");
+        if (!wrapper) return;
+        // Don't drag if clicking the edit button
+        if (e.target.closest(".category_edit_btn")) return;
+
+        e.preventDefault();
+
+        var wrappers = getCatWrappers();
+        var fromIdx = Array.prototype.indexOf.call(wrappers, wrapper);
+        if (fromIdx < 0) return;
+
+        var rect = wrapper.getBoundingClientRect();
+
+        state = {
+          wrapper: wrapper,
+          fromIdx: fromIdx,
+          startX: e.clientX,
+          startY: e.clientY,
+          offsetX: e.clientX - rect.left,
+          offsetY: e.clientY - rect.top,
+          ghost: null,
+          dragging: false,
+        };
+      });
+
+      document.addEventListener("mousemove", function (e) {
+        if (!state) return;
+
+        if (!state.dragging) {
+          var dx = Math.abs(e.clientX - state.startX);
+          var dy = Math.abs(e.clientY - state.startY);
+          if (dx < CAT_DEAD_ZONE && dy < CAT_DEAD_ZONE) return;
+
+          state.dragging = true;
+          state.wrapper.classList.add("cat_dragging");
+          document.body.classList.add("anime_reorder_active");
+
+          var ghost = state.wrapper.cloneNode(true);
+          ghost.className = "category_tab_wrapper cat_drag_ghost";
+          ghost.style.width = state.wrapper.offsetWidth + "px";
+          ghost.style.height = state.wrapper.offsetHeight + "px";
+          document.body.appendChild(ghost);
+          state.ghost = ghost;
+        }
+
+        e.preventDefault();
+        state.ghost.style.top = e.clientY - state.offsetY + "px";
+        state.ghost.style.left = e.clientX - state.offsetX + "px";
+        showCatIndicator(getCatDropIdx(e.clientX));
+      });
+
+      document.addEventListener("mouseup", function (e) {
+        if (!state) return;
+        var s = state;
+        state = null;
+
+        if (!s.dragging) return;
+
+        var dropIdx = getCatDropIdx(e.clientX);
+        removeCatIndicator();
+        s.wrapper.classList.remove("cat_dragging");
+        s.ghost.remove();
+        document.body.classList.remove("anime_reorder_active");
+
+        var wrappers = getCatWrappers();
+        var newOrder = catReorderList(wrappers, s.fromIdx, dropIdx);
+        if (newOrder) persistCatOrder(newOrder);
+      });
+    })();
+
+    // ─── Mobile: long-press on category tab ───
+    (function () {
+      var state = null;
+      var pressTimer = null;
+
+      function getCatDropIdx(clientX) {
+        var wrappers = getCatWrappers();
+        for (var i = 0; i < wrappers.length; i++) {
+          var r = wrappers[i].getBoundingClientRect();
+          if (clientX < r.left + r.width / 2) return i;
+        }
+        return wrappers.length;
+      }
+
+      function removeCatIndicator() {
+        var el = tabsNav.querySelector(".cat_drop_indicator");
+        if (el) el.remove();
+      }
+
+      function showCatIndicator(idx) {
+        removeCatIndicator();
+        var wrappers = getCatWrappers();
+        var ind = document.createElement("div");
+        ind.className = "cat_drop_indicator";
+        if (idx < wrappers.length) {
+          tabsNav.insertBefore(ind, wrappers[idx]);
+        } else {
+          tabsNav.appendChild(ind);
+        }
+      }
+
+      function cancelPress() {
+        if (pressTimer) {
+          clearTimeout(pressTimer);
+          pressTimer = null;
+        }
+      }
+
+      function cleanup() {
+        cancelPress();
+        if (state) {
+          state.wrapper.classList.remove("cat_dragging");
+          if (state.ghost) state.ghost.remove();
+          removeCatIndicator();
+          document.body.classList.remove("anime_reorder_active");
+          state = null;
+        }
+      }
+
+      tabsNav.addEventListener(
+        "touchstart",
+        function (e) {
+          var wrapper = e.target.closest(".category_tab_wrapper");
+          if (!wrapper) return;
+          if (e.target.closest(".category_edit_btn")) return;
+
+          var touch = e.touches[0];
+          var startX = touch.clientX;
+          var startY = touch.clientY;
+          var moved = false;
+
+          pressTimer = setTimeout(function () {
+            pressTimer = null;
+            if (moved) return;
+
+            if (navigator.vibrate) navigator.vibrate(50);
+
+            var wrappers = getCatWrappers();
+            var fromIdx = Array.prototype.indexOf.call(wrappers, wrapper);
+            if (fromIdx < 0) return;
+
+            var rect = wrapper.getBoundingClientRect();
+            var ghost = wrapper.cloneNode(true);
+            ghost.className = "category_tab_wrapper cat_drag_ghost";
+            ghost.style.width = rect.width + "px";
+            ghost.style.height = rect.height + "px";
+            ghost.style.top = rect.top + "px";
+            ghost.style.left = rect.left + "px";
+            document.body.appendChild(ghost);
+
+            wrapper.classList.add("cat_dragging");
+            document.body.classList.add("anime_reorder_active");
+
+            state = {
+              wrapper: wrapper,
+              ghost: ghost,
+              fromIdx: fromIdx,
+              offsetX: touch.clientX - rect.left,
+              offsetY: touch.clientY - rect.top,
+              dropIdx: fromIdx,
+            };
+          }, CAT_HOLD_MS);
+
+          var onTouchMove = function (ev) {
+            var t = ev.touches[0];
+            if (!state) {
+              if (
+                Math.abs(t.clientX - startX) > 10 ||
+                Math.abs(t.clientY - startY) > 10
+              ) {
+                moved = true;
+                cancelPress();
+              }
+            }
+          };
+          wrapper.addEventListener("touchmove", onTouchMove, {
+            passive: true,
+          });
+          wrapper.addEventListener(
+            "touchend",
+            function () {
+              cancelPress();
+              wrapper.removeEventListener("touchmove", onTouchMove);
+            },
+            { once: true },
+          );
+          wrapper.addEventListener(
+            "touchcancel",
+            function () {
+              cleanup();
+              wrapper.removeEventListener("touchmove", onTouchMove);
+            },
+            { once: true },
+          );
+        },
+        { passive: true },
+      );
+
+      document.addEventListener(
+        "touchmove",
+        function (e) {
+          if (!state) return;
+          e.preventDefault();
+          var touch = e.touches[0];
+          state.ghost.style.top = touch.clientY - state.offsetY + "px";
+          state.ghost.style.left = touch.clientX - state.offsetX + "px";
+
+          var dropIdx = getCatDropIdx(touch.clientX);
+          state.dropIdx = dropIdx;
+          showCatIndicator(dropIdx);
+        },
+        { passive: false },
+      );
+
+      document.addEventListener("touchend", function () {
+        if (!state) return;
+        var s = state;
+        cleanup();
+
+        var wrappers = getCatWrappers();
+        var newOrder = catReorderList(wrappers, s.fromIdx, s.dropIdx);
+        if (newOrder) persistCatOrder(newOrder);
+      });
+    })();
+  }
+
+  /* ────────────────────────────────────────────
    *  Tab click handlers & initial load
    * ──────────────────────────────────────────── */
 

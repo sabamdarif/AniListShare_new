@@ -27,7 +27,11 @@ class CategoryListCreateApiView(generics.ListCreateAPIView):
         return super().get_queryset().filter(user=self.request.user)
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        max_order = Category.objects.filter(user=self.request.user).aggregate(
+            m=Max("order")
+        )["m"]
+        next_order = (max_order + 1) if max_order is not None else 0
+        serializer.save(user=self.request.user, order=next_order)
 
 
 class CategoryDetailApiView(generics.RetrieveUpdateDestroyAPIView):
@@ -37,6 +41,15 @@ class CategoryDetailApiView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         return super().get_queryset().filter(user=self.request.user)
+
+    def perform_destroy(self, instance):
+        user = instance.user
+        instance.delete()
+        # Re-index category order after deletion
+        siblings = Category.objects.filter(user=user).order_by("order", "pk")
+        for idx, cat in enumerate(siblings):
+            if cat.order != idx:
+                Category.objects.filter(pk=cat.pk).update(order=idx)
 
 
 class AnimeListCreateApiView(generics.ListCreateAPIView):
@@ -99,7 +112,6 @@ class AnimeReorderApiView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Validate all IDs belong to this category + user
         anime_qs = Anime.objects.filter(category=category)
         valid_ids = set(anime_qs.values_list("id", flat=True))
 
@@ -110,9 +122,36 @@ class AnimeReorderApiView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-        # Bulk update order
         for idx, aid in enumerate(ordered_ids):
             Anime.objects.filter(pk=aid).update(order=idx)
+
+        return Response({"status": "ok"})
+
+
+class CategoryReorderApiView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        ordered_ids = request.data.get("order", [])
+        if not isinstance(ordered_ids, list):
+            return Response(
+                {"detail": "order must be a list of category IDs"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        valid_ids = set(
+            Category.objects.filter(user=request.user).values_list("id", flat=True)
+        )
+
+        for cid in ordered_ids:
+            if cid not in valid_ids:
+                return Response(
+                    {"detail": f"Category {cid} not found"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        for idx, cid in enumerate(ordered_ids):
+            Category.objects.filter(pk=cid).update(order=idx)
 
         return Response({"status": "ok"})
 

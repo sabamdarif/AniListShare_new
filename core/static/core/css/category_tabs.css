@@ -131,3 +131,31 @@
     transform: translateX(0);
   }
 }
+
+/* ── Category drag ghost ── */
+.cat_drag_ghost {
+  position: fixed !important;
+  z-index: 10000;
+  pointer-events: none;
+  opacity: 0.9;
+  background: var(--surface);
+  box-shadow:
+    0 6px 24px rgba(0, 0, 0, 0.3),
+    0 0 0 2px var(--accent);
+  border-radius: 8px;
+  transform: scale(1.05);
+}
+
+.cat_dragging {
+  opacity: 0.3 !important;
+}
+
+.cat_drop_indicator {
+  width: 3px;
+  align-self: stretch;
+  background: var(--accent);
+  border-radius: 2px;
+  flex-shrink: 0;
+  box-shadow: 0 0 8px var(--accent);
+  margin: 4px 0;
+}

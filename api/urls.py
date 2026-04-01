@@ -9,6 +9,11 @@ urlpatterns = [
         name="category_list_create",
     ),
     path(
+        "anime/category/reorder/",
+        views.CategoryReorderApiView.as_view(),
+        name="category_reorder",
+    ),
+    path(
         "anime/category/<int:pk>/",
         views.CategoryDetailApiView.as_view(),
         name="category_detail",
