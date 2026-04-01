@@ -511,7 +511,7 @@
     showSkeleton(4);
 
     try {
-      var res = await fetch("/api/list-anime/category/" + catId + "/", {
+      var res = await fetch("/api/anime/category/" + catId + "/", {
         method: "GET",
         credentials: "same-origin",
         headers: { Accept: "application/json" },
@@ -806,4 +806,3 @@
     });
   });
 })();
-

@@ -4,8 +4,8 @@ from . import views
 
 urlpatterns = [
     path(
-        "list-anime/category/<int:pk>/",
-        views.AnimeListApiView.as_view(),
-        name="list_anime",
-    )
+        "anime/category/<int:pk>/",
+        views.AnimeListCreateApiView.as_view(),
+        name="list_create_anime",
+    ),
 ]
