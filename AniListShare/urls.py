@@ -20,7 +20,6 @@ from django.contrib import admin
 from django.urls import include, path
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
     path("", include("core.urls")),
     path("accounts/", include("accounts.urls")),
     path("api/", include("api.urls")),
@@ -28,6 +27,7 @@ urlpatterns = [
 
 if settings.DEBUG:
     urlpatterns += [
+        path("admin/", admin.site.urls),
         # hot reloading
         path("__reload__/", include("django_browser_reload.urls")),
         path("silk/", include("silk.urls", namespace="silk")),
