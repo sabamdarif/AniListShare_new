@@ -182,8 +182,8 @@
 }
 
 .thumb_img {
-  width: 56px;
-  height: 78px;
+  width: 72px;
+  height: 100px;
   object-fit: cover;
   border-radius: 4px;
   display: block;
@@ -203,8 +203,8 @@
 }
 
 .thumb_img_placeholder {
-  width: 56px;
-  height: 78px;
+  width: 72px;
+  height: 100px;
 }
 
 .thumb_placeholder:hover {
