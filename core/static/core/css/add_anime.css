@@ -9,7 +9,6 @@
   justify-content: center;
   opacity: 0;
   transition: opacity 0.25s ease;
-  padding: 16px;
 }
 
 .aam_overlay.aam_visible {
@@ -410,6 +409,8 @@
   outline: none;
   resize: vertical;
   min-height: 32px;
+  min-width: 0;
+  width: 100%;
 }
 
 .aam_season_comment::placeholder {
@@ -674,12 +675,6 @@
 @media (max-width: 520px) {
   .aam_card {
     max-height: 95vh;
-    border-radius: 12px 12px 0 0;
-  }
-
-  .aam_overlay {
-    align-items: flex-end;
-    padding: 0;
   }
 
   .aam_seasons_cols {

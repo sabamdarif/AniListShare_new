@@ -9,7 +9,6 @@
   justify-content: center;
   opacity: 0;
   transition: opacity 0.25s ease;
-  padding: 16px;
 }
 
 .acm_overlay.acm_visible {
@@ -160,13 +159,3 @@
   cursor: not-allowed;
 }
 
-@media (max-width: 520px) {
-  .acm_card {
-    border-radius: 12px 12px 0 0;
-  }
-
-  .acm_overlay {
-    align-items: flex-end;
-    padding: 0;
-  }
-}
