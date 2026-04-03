@@ -429,7 +429,6 @@ window.AnimeRenderer = (function () {
           ? parseFloat(a.stars).toFixed(1)
           : "0.0";
       var safeName = escapeHtml(a.name);
-      var displayId = displayIdFn ? displayIdFn(a, idx) : "#" + (idx + 1);
 
       html +=
         '<div class="m_card"' +
@@ -441,9 +440,6 @@ window.AnimeRenderer = (function () {
           animeName: a.name,
         }) +
         '<div class="m_card_body">' +
-        '<span class="m_card_id">' +
-        escapeHtml(displayId) +
-        "</span>" +
         '<h3 class="m_card_title">' +
         safeName +
         "</h3>" +

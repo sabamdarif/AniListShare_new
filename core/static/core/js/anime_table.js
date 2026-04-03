@@ -13,9 +13,6 @@
     showEditColumn: true,
     colSpan: 7,
     emptyMessage: "No anime found in this category.",
-    displayIdFn: function (a, idx) {
-      return "ID: " + (a.id || idx + 1);
-    },
   });
 
   var tabs = tabsContainer.querySelectorAll(".category_tab");
