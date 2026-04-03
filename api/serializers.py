@@ -1,3 +1,4 @@
+from django.db import transaction
 from rest_framework import serializers
 
 from core.models import Anime, Category, Season
@@ -32,13 +33,17 @@ class AnimeSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ("id",)
 
+    @transaction.atomic
     def create(self, validated_data):
         seasons_data = validated_data.pop("seasons", [])
         anime = Anime.objects.create(**validated_data)
-        for season_data in seasons_data:
-            Season.objects.create(anime=anime, **season_data)
+        if seasons_data:
+            Season.objects.bulk_create(
+                [Season(anime=anime, **season_data) for season_data in seasons_data]
+            )
         return anime
 
+    @transaction.atomic
     def update(self, instance, validated_data):
         seasons_data = validated_data.pop("seasons", None)
 
@@ -46,11 +51,15 @@ class AnimeSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         instance.save()
 
-        # only replace seasons when the key was actually sent
         if seasons_data is not None:
             instance.seasons.all().delete()
-            for season_data in seasons_data:
-                Season.objects.create(anime=instance, **season_data)
+            if seasons_data:
+                Season.objects.bulk_create(
+                    [
+                        Season(anime=instance, **season_data)
+                        for season_data in seasons_data
+                    ]
+                )
 
         return instance
 
