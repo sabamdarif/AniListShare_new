@@ -115,13 +115,13 @@
                                 <span>Export</span>
                             </button>
                             <div class="user_dropdown_divider"></div>
-                            <button type="button"
-                                    class="user_dropdown_item"
-                                    role="menuitem"
-                                    onclick="window.location.href='{% url 'account_settings' %}'">
+                            <a href="{% url 'account_settings' %}"
+                               class="user_dropdown_item"
+                               role="menuitem"
+                               style="text-decoration: none">
                                 <i class="nf nf-fa-cog"></i>
                                 <span>Settings</span>
-                            </button>
+                            </a>
                         </div>
                     </div>
                 </div>
