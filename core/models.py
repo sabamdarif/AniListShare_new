@@ -12,6 +12,9 @@ class Category(models.Model):
         ordering = ["order"]
         verbose_name_plural = "categories"
         unique_together = ("user", "user_category_id")
+        indexes = [
+            models.Index(fields=["user", "order"]),
+        ]
 
     def __str__(self) -> str:
         return str(self.name)
@@ -29,6 +32,9 @@ class Anime(models.Model):
 
     class Meta:
         ordering = ["order"]
+        indexes = [
+            models.Index(fields=["category", "order"]),
+        ]
 
     def __str__(self) -> str:
         return str(self.name)
