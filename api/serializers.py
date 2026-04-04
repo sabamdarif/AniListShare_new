@@ -16,6 +16,36 @@ class SeasonSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ("is_completed",)
 
+    def validate_number(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("seasons must be greater then 0")
+        return value
+
+    def validated_total_episodes(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("total_episodes cannot be negative")
+        return value
+
+    def validated_watched_episodes(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("watched_episodes cannot be negative")
+        return value
+
+    def validate(self, attrs):
+        total = attrs.get("total_episodes")
+        watched = attrs.get("watched_episodes")
+
+        if total is None and self.instance:
+            total = self.instance.total_episodes
+        if watched is None and self.instance:
+            watched = self.instance.watched_episodes
+
+        if total is not None and watched is not None and total > 0 and watched > total:
+            raise serializers.ValidationError(
+                {"watched_episodes": "Cannot exceed total episodes"}
+            )
+        return attrs
+
 
 class AnimeSerializer(serializers.ModelSerializer):
     seasons = SeasonSerializer(many=True, required=False, default=[])
@@ -32,6 +62,23 @@ class AnimeSerializer(serializers.ModelSerializer):
             "seasons",
         )
         read_only_fields = ("id",)
+
+    def validated_name(self, value):
+        if not value and not value.strip():
+            serializers.ValidationError("Anime name cannot be empty")
+
+        return value
+
+    def validated_stars(self, value):
+        if value is not None:
+            serializers.ValidationError("Star rating must be between 0 and 10")
+
+        return value
+
+    def validate_order(self, value):
+        if value < 0:
+            raise serializers.ValidationError("Order cannot be negative")
+        return value
 
     @transaction.atomic
     def create(self, validated_data):
@@ -71,6 +118,11 @@ class CategorySerializer(serializers.ModelSerializer):
         model = Category
         fields = ("id", "name", "order")
         read_only_fields = ("id",)
+
+    def validate_order(self, value):
+        if value < 0:
+            raise serializers.ValidationError("Order cannot be negative")
+        return value
 
 
 class SearchAnimeSerializer(serializers.ModelSerializer):

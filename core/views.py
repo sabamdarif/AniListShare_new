@@ -1,13 +1,10 @@
-import json
-
 from allauth.account.decorators import verified_email_required
 from django.contrib.auth.decorators import login_required
 from django.http import Http404
 from django.shortcuts import render
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from api.serializers import AnimeSerializer
-from core.models import Anime, Category, ShareLink
+from core.models import ShareLink
 
 
 @login_required
