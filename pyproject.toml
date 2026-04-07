@@ -8,6 +8,7 @@ dependencies = [
     "dj-database-url>=2.3.0",
     "django>=6.0.3",
     "django-allauth[mfa,socialaccount]>=65.15.0",
+    "django-cors-headers>=4.9.0",
     "django-stubs>=6.0.1",
     "django-watchfiles>=1.4.0",
     "djangorestframework>=3.17.1",

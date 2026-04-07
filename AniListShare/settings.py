@@ -36,6 +36,11 @@ ALLOWED_HOSTS = [
     h.strip() for h in os.getenv("ALLOWED_HOSTS", "").split(",") if h.strip()
 ] or ["*"]
 
+CORS_ALLOWED_ORIGINS_URLS = [
+    h.strip() for h in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",") if h.strip()
+]
+CORS_ALLOWED_ORIGINS = CORS_ALLOWED_ORIGINS_URLS
+
 
 # Application definition
 
@@ -55,11 +60,13 @@ INSTALLED_APPS = [
     "allauth.mfa",
     "rest_framework",
     "rest_framework_simplejwt",
+    "corsheaders",
     "api",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -239,6 +246,14 @@ REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",
     ],
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "100/day",
+        "user": "5000/day",
+    },
 }
 
 SIMPLE_JWT = {
