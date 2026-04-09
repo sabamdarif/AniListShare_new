@@ -1,11 +1,9 @@
-import { useRef, useCallback, useEffect } from 'react'
+import { useRef, useCallback } from 'react'
 
 const DEAD_ZONE = 4
 const EDGE_ZONE = 60
 const SCROLL_SPEED = 15
 const MOBILE_LONG_PRESS = 400
-const MOBILE_EDGE_ZONE = 80
-
 export default function useDragReorder({
   containerRef,
   itemSelector,
@@ -29,8 +27,6 @@ export default function useDragReorder({
     orderedIds: [],
     dropIdx: -1,
   })
-
-  const cleanupRef = useRef(null)
 
   const getItems = useCallback(() => {
     if (!containerRef.current) return []

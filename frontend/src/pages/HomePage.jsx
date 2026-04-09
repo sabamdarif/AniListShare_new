@@ -19,7 +19,7 @@ import ImportModal from '../components/ImportModal'
 import { useToast } from '../components/Toast'
 
 export default function HomePage() {
-  const { user, isAuthenticated } = useAuthInfo()
+  const { user } = useAuthInfo()
   const isMobile = useIsMobile()
   const showToast = useToast()
 

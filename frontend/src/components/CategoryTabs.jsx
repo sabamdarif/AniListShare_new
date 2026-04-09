@@ -1,5 +1,4 @@
 import { useCallback } from 'react'
-import { escapeHtml } from '../lib/animeUtils'
 
 export default function CategoryTabs({
   categories,

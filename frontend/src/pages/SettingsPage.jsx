@@ -5,7 +5,7 @@ import { clearTokens } from '../api/client'
 
 export default function SettingsPage() {
   const navigate = useNavigate()
-  const { user } = useAuthInfo()
+  useAuthInfo()
 
   async function handleLogout() {
     try {

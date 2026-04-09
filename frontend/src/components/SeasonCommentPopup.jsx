@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react'
-import useIsMobile from '../hooks/useIsMobile'
 
 /**
  * SeasonCommentPopup — handles both:
@@ -10,7 +9,6 @@ import useIsMobile from '../hooks/useIsMobile'
  * Mount this once (e.g. in HomePage) to enable comment popups everywhere.
  */
 export default function SeasonCommentPopup() {
-  const isMobile = useIsMobile()
   const tooltipRef = useRef(null)   // active desktop tooltip element
   const popupRef = useRef(null)     // active mobile popup overlay element
   const hoverTimerRef = useRef(null)

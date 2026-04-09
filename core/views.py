@@ -10,6 +10,7 @@ from core.models import ShareLink
 
 # ─── SPA entry point ────────────────────────────────────────────────────
 FRONTEND_DIR = os.path.join(settings.BASE_DIR, "frontend", "dist")
+ASSETS_DIR = os.path.realpath(os.path.join(FRONTEND_DIR, "assets"))
 
 
 @never_cache
@@ -31,7 +32,25 @@ def spa_view(request):
 # ─── Serve SPA static assets (JS, CSS, images from frontend/dist/assets/) ───
 def spa_asset(request, path):
     """Serve built frontend assets from frontend/dist/assets/."""
-    filepath = os.path.join(FRONTEND_DIR, "assets", path)
+    if not path:
+        raise Http404
+
+    normalized = path.replace("\\", "/")
+    if normalized.startswith("/") or any(part == ".." for part in normalized.split("/")):
+        raise Http404
+
+    filepath = os.path.realpath(os.path.join(ASSETS_DIR, normalized))
+    if (
+        not normalized_path
+        or os.path.isabs(normalized_path)
+        or normalized_path == ".."
+        or normalized_path.startswith(".." + os.sep)
+    ):
+        raise Http404
+
+    filepath = os.path.abspath(os.path.realpath(os.path.join(ASSETS_DIR, normalized_path)))
+    if os.path.commonpath([ASSETS_DIR, filepath]) != ASSETS_DIR:
+        raise Http404
     if os.path.exists(filepath) and os.path.isfile(filepath):
         return FileResponse(open(filepath, "rb"))
     raise Http404

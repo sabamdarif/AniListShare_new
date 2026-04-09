@@ -37,7 +37,7 @@ export default function AnimeModalBase({
   const debounceRef = useRef(null)
 
   const [selectedName, setSelectedName] = useState('')
-  const [selected, setSelected] = useState(null)
+  const [, setSelected] = useState(null)
   const [rating, setRating] = useState(0)
   const [entries, setEntries] = useState([])
   const [languages, setLanguages] = useState([])

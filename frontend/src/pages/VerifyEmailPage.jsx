@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { verifyEmail, getEmailVerification } from '../api/allauth'
+import { verifyEmail } from '../api/allauth'
 
 export default function VerifyEmailPage() {
   const { key } = useParams()
