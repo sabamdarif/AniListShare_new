@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 import os
-from datetime import timedelta
+
 from pathlib import Path
 
 import dj_database_url
@@ -52,9 +52,9 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "core",
-    "accounts",
     "allauth",
     "allauth.account",
+    "allauth.headless",
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
     "allauth.mfa",
@@ -70,6 +70,7 @@ MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
+    "core.middleware.EnsureCsrfCookieMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -194,9 +195,9 @@ SOCIALACCOUNT_PROVIDERS = {
 
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 
-LOGIN_URL = "/accounts/login"
-LOGIN_REDIRECT_URL = "home_page"
-LOGOUT_REDIRECT_URL = "/accounts/login"
+LOGIN_URL = "/account/login"
+LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "/account/login"
 ACCOUNT_SIGNUP_FIELDS = [
     "username*",
     "email*",
@@ -205,6 +206,19 @@ ACCOUNT_SIGNUP_FIELDS = [
 ]  # it's default but i still did it
 ACCOUNT_LOGIN_METHODS = {"email", "username"}  # login either using email or username
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+
+# ─── Allauth headless (React SPA) ───────────────────────────────────────
+HEADLESS_ONLY = False  # Keep Django admin + server-rendered pages working
+HEADLESS_TOKEN_STRATEGY = "allauth.headless.tokens.strategies.jwt.strategy.JWTTokenStrategy"
+HEADLESS_JWT_ALGORITHM = "HS256"  # Use symmetric signing with SECRET_KEY
+HEADLESS_JWT_ACCESS_TOKEN_EXPIRES_IN = 300  # 5 minutes
+HEADLESS_JWT_REFRESH_TOKEN_EXPIRES_IN = 86400  # 1 day
+HEADLESS_FRONTEND_URLS = {
+    "account_confirm_email": "/account/verify-email/{key}",
+    "account_reset_password_from_key": "/account/password/reset/key/{key}",
+    "account_signup": "/account/signup",
+    "socialaccount_login_cancelled": "/account/login",
+}
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_HOST_USER = os.getenv("EMAIL_ADDRESS")
@@ -241,7 +255,8 @@ if not DEBUG:
 # Django REST Framework
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "allauth.headless.contrib.rest_framework.authentication.JWTTokenAuthentication",
+        "core.middleware.CsrfExemptSessionAuthentication",
     ],
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",
@@ -256,24 +271,26 @@ REST_FRAMEWORK = {
     },
 }
 
-SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
-    "ROTATE_REFRESH_TOKENS": False,
-    "BLACKLIST_AFTER_ROTATION": False,
-    "UPDATE_LAST_LOGIN": False,
-    "ALGORITHM": "HS256",
-    "SIGNING_KEY": SECRET_KEY,
-    "AUTH_HEADER_TYPES": ("Bearer",),
-    "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
-}
-
 # CSRF trusted origins
 CSRF_TRUSTED_ORIGINS = [
     origin.strip()
     for origin in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
     if origin.strip()
 ]
+
+# ─── CSRF cookie must be readable by JavaScript (allauth headless) ──────
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SAMESITE = "Lax"
+
+# ─── Dev server: auto-trust Vite origin ─────────────────────────────────
+if DEBUG:
+    _dev_origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
+    for _o in _dev_origins:
+        if _o not in CSRF_TRUSTED_ORIGINS:
+            CSRF_TRUSTED_ORIGINS.append(_o)
+    CORS_ALLOW_CREDENTIALS = True
+    CORS_ALLOWED_ORIGINS = CSRF_TRUSTED_ORIGINS
 
 # ─── Production security settings ───────────────────────────────────────
 if not DEBUG:
