@@ -38,22 +38,22 @@ def spa_asset(request, path):
     if not path:
         raise Http404
 
-    normalized = path.replace("\\", "/")
-    if normalized.startswith("/") or any(part == ".." for part in normalized.split("/")):
-        raise Http404
-
+    normalized = os.path.normpath(path.replace("\\", "/"))
     if (
         not normalized
+        or normalized in {".", ".."}
+        or normalized.startswith("/")
         or os.path.isabs(normalized)
-        or normalized == ".."
-        or normalized.startswith(".." + os.sep)
+        or normalized.startswith("../")
+        or "/../" in f"/{normalized}/"
     ):
         raise Http404
 
-    filepath = os.path.abspath(os.path.realpath(os.path.join(ASSETS_DIR, normalized)))
+    filepath = os.path.realpath(os.path.join(ASSETS_DIR, normalized))
     if os.path.commonpath([ASSETS_DIR, filepath]) != ASSETS_DIR:
         raise Http404
-    if os.path.exists(filepath) and os.path.isfile(filepath):
+
+    if os.path.isfile(filepath):
         return FileResponse(open(filepath, "rb"))
     raise Http404
 
