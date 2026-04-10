@@ -8,6 +8,7 @@ from django.views.decorators.cache import never_cache
 from core.models import ShareLink
 
 
+
 # ─── SPA entry point ────────────────────────────────────────────────────
 FRONTEND_DIR = os.path.join(settings.BASE_DIR, "frontend", "dist")
 ASSETS_DIR = os.path.realpath(os.path.join(FRONTEND_DIR, "assets"))
@@ -34,6 +35,11 @@ def spa_asset(request, path):
     """Serve built frontend assets from frontend/dist/assets/."""
     if not path:
         raise Http404
+@login_required
+@verified_email_required
+def home(request):
+    context = {"user_is_authenticated": request.user.is_authenticated}
+    return render(request, "core/index.html", context)
 
     normalized = path.replace("\\", "/")
     if normalized.startswith("/") or any(part == ".." for part in normalized.split("/")):
@@ -68,6 +74,7 @@ def shared_list_view(request, token):
     context = {
         "owner_name": owner.get_full_name() or owner.username,
         "share_token": token,
+        "user_is_authenticated": request.user.is_authenticated,
     }
 
     return render(request, "core/shared_list.html", context)
