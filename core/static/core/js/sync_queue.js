@@ -37,7 +37,6 @@
     }
   }
 
-  // The Bulk Sync API Caller
   async function performSync(actionsPayload) {
     if (!actionsPayload || actionsPayload.length === 0) return;
 
@@ -52,6 +51,11 @@
 
       const data = await resp.json();
 
+      // Only remove the successfully synced items from the queue!
+      // This prevents data loss if this specific request was aborted midway.
+      queue = queue.filter(q => !actionsPayload.includes(q));
+      saveToLocal();
+
       // Update local storage ID mapping
       const map = data.created_ids || {};
       if (typeof window.resolveAnimeIds === "function") {
@@ -59,6 +63,10 @@
       }
     } catch (err) {
       console.error("Sync failed", err);
+      // If the request fails (or is aborted), the payload remains in `queue`
+      // So the next automatic flush, or `beforeunload`, will safely retry it!
+      if (!syncTimer) syncTimer = setTimeout(flushQueue, SYNC_DELAY);
+
       // Revert UI to match server
       if (typeof window.refreshCurrentCategory === "function") {
         window.refreshCurrentCategory();
@@ -78,9 +86,9 @@
     if (queue.length === 0) return;
 
     const payload = queue.slice();
-    queue = []; // clear immediately
-    saveToLocal(); // clear local storage
-
+    // Do not clear the queue here anymore.
+    // It will be cleared inside performSync upon a successful response.
+    
     performSync(payload);
   }
 
@@ -88,9 +96,11 @@
   window.addEventListener("beforeunload", function () {
     if (queue.length > 0) {
       const payload = JSON.stringify({ actions: queue });
-      const token =
-        window.__INITIAL_JWT_ACCESS__ ||
-        localStorage.getItem("anime_jwt_access");
+      const globalToken =
+        typeof window.getJwtAccessToken === "function"
+          ? window.getJwtAccessToken()
+          : null;
+      const token = globalToken || window.__INITIAL_JWT_ACCESS__;
 
       // CRITICAL: We clear localStorage here because we are handing off the payload
       // to the browser's native background keepalive fetch. If the browser crashed

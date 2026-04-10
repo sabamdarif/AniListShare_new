@@ -4,6 +4,29 @@ let jwtAccessToken = window.__INITIAL_JWT_ACCESS__ || null; // fallback
 let jwtRefreshToken = window.__INITIAL_JWT_REFRESH__ || null; // fallback
 
 let initialTokenPromise = null;
+let refreshTokenPromise = null; // Prevent concurrent refresh requests
+
+// Export token getter for sync_queue to use during beforeunload
+window.getJwtAccessToken = function () {
+  return jwtAccessToken;
+};
+
+function isTokenExpired(token) {
+  if (!token) return true;
+  try {
+    let base64Url = token.split(".")[1];
+    let base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    // Pad with '=' so length is a multiple of 4
+    while (base64.length % 4 !== 0) {
+      base64 += "=";
+    }
+    const payload = JSON.parse(decodeURIComponent(escape(atob(base64))));
+    // 10 second buffer
+    return payload.exp * 1000 <= Date.now() + 10000;
+  } catch (e) {
+    return true;
+  }
+}
 
 // Helper to get CSRF cookie
 function getCookie(name) {
@@ -53,6 +76,43 @@ async function ensureToken() {
   return await initialTokenPromise;
 }
 
+async function performRefresh() {
+  if (refreshTokenPromise) return await refreshTokenPromise;
+
+  refreshTokenPromise = fetch("/api/v1/token/refresh/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refresh: jwtRefreshToken }),
+  })
+    .then(async (refreshResponse) => {
+      if (refreshResponse.ok) {
+        const refreshData = await refreshResponse.json();
+        jwtAccessToken = refreshData.access;
+        if (refreshData.refresh) {
+          jwtRefreshToken = refreshData.refresh;
+        }
+        return true;
+      } else {
+        console.warn("Refresh token expired. Cannot refresh.");
+        jwtAccessToken = null;
+        jwtRefreshToken = null;
+        if (window.location.pathname !== "/accounts/login/") {
+          window.location.href = "/accounts/login/";
+        }
+        return false;
+      }
+    })
+    .catch((error) => {
+      console.error("Error during token refresh:", error);
+      return false;
+    })
+    .finally(() => {
+      refreshTokenPromise = null;
+    });
+
+  return await refreshTokenPromise;
+}
+
 // Custom fetch wrapper for API calls
 async function apiFetch(url, options = {}) {
   if (!options.headers) {
@@ -62,6 +122,11 @@ async function apiFetch(url, options = {}) {
   // Await the token strictly if this is an internal API call
   if (url.startsWith("/api/")) {
     await ensureToken();
+
+    // Proactively refresh if the token is expired/expiring soon
+    if (jwtAccessToken && jwtRefreshToken && isTokenExpired(jwtAccessToken)) {
+      await performRefresh();
+    }
   }
 
   // Attach access token only for internal API edges
@@ -71,36 +136,12 @@ async function apiFetch(url, options = {}) {
 
   let response = await fetch(url, options);
 
-  // If 401 Unauthorized, token might be expired. Try to refresh.
+  // If 401 Unauthorized, token might be expired. Try to refresh once more just in case.
   if (response.status === 401 && jwtRefreshToken && url.startsWith("/api/")) {
-    try {
-      const refreshResponse = await fetch("/api/v1/token/refresh/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refresh: jwtRefreshToken }),
-      });
-
-      if (refreshResponse.ok) {
-        const refreshData = await refreshResponse.json();
-        jwtAccessToken = refreshData.access;
-        if (refreshData.refresh) {
-          jwtRefreshToken = refreshData.refresh; // Update if rotation is on
-        }
-
-        // Retry the original request
-        options.headers["Authorization"] = `Bearer ${jwtAccessToken}`;
-        response = await fetch(url, options);
-      } else {
-        console.warn("Refresh token expired. Cannot refresh.");
-        jwtAccessToken = null;
-        jwtRefreshToken = null;
-        // Optional: redirect to login if required, but let the caller handle 401 otherwise.
-        if (window.location.pathname !== "/accounts/login/") {
-          window.location.href = "/accounts/login/";
-        }
-      }
-    } catch (error) {
-      console.error("Error during token refresh:", error);
+    const success = await performRefresh();
+    if (success) {
+      options.headers["Authorization"] = `Bearer ${jwtAccessToken}`;
+      response = await fetch(url, options);
     }
   }
 
