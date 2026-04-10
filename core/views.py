@@ -1,4 +1,5 @@
 import os
+import re
 
 from django.conf import settings
 from django.http import Http404, HttpResponse, FileResponse
@@ -46,6 +47,7 @@ def spa_asset(request, path):
         or os.path.isabs(normalized)
         or normalized.startswith("../")
         or "/../" in f"/{normalized}/"
+        or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._/-]*", normalized)
     ):
         raise Http404
 
