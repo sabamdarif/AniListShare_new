@@ -4,7 +4,9 @@ from django.conf import settings
 from django.http import Http404, HttpResponse, FileResponse
 from django.shortcuts import render
 from django.views.decorators.cache import never_cache
+from django.contrib.auth.decorators import login_required
 
+from allauth.account.decorators import verified_email_required
 from core.models import ShareLink
 
 
@@ -35,11 +37,6 @@ def spa_asset(request, path):
     """Serve built frontend assets from frontend/dist/assets/."""
     if not path:
         raise Http404
-@login_required
-@verified_email_required
-def home(request):
-    context = {"user_is_authenticated": request.user.is_authenticated}
-    return render(request, "core/index.html", context)
 
     normalized = path.replace("\\", "/")
     if normalized.startswith("/") or any(part == ".." for part in normalized.split("/")):
@@ -59,6 +56,13 @@ def home(request):
     if os.path.exists(filepath) and os.path.isfile(filepath):
         return FileResponse(open(filepath, "rb"))
     raise Http404
+
+
+@login_required
+@verified_email_required
+def home(request):
+    context = {"user_is_authenticated": request.user.is_authenticated}
+    return render(request, "core/index.html", context)
 
 
 # ─── Shared list — kept as server-side for SEO ──────────────────────────
