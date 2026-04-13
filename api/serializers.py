@@ -17,17 +17,17 @@ class SeasonSerializer(serializers.ModelSerializer):
         read_only_fields = ("is_completed",)
 
     def validate_number(self, value):
-        if value <= 0:
-            raise serializers.ValidationError("seasons must be greater then 0")
+        if value < 0:
+            raise serializers.ValidationError("season number cannot be negative")
         return value
 
     def validate_total_episodes(self, value):
-        if value <= 0:
+        if value < 0:
             raise serializers.ValidationError("total_episodes cannot be negative")
         return value
 
     def validate_watched_episodes(self, value):
-        if value <= 0:
+        if value < 0:
             raise serializers.ValidationError("watched_episodes cannot be negative")
         return value
 
