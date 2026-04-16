@@ -11,6 +11,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from core.models import Anime, Category, Season, ShareLink
+from allauth.socialaccount.models import SocialAccount
 
 from .serializers import AnimeSerializer, CategorySerializer, SearchAnimeSerializer
 
@@ -498,6 +499,24 @@ class ShareCopyApiView(APIView):
             status=status.HTTP_200_OK,
         )
 
+
+class UserProfileApiView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        picture = None
+        # Try to get the picture from Google social account
+        social_accounts = SocialAccount.objects.filter(user=request.user, provider='google')
+        if social_accounts.exists():
+            extra_data = social_accounts.first().extra_data
+            picture = extra_data.get('picture')
+
+        return Response({
+            'username': request.user.username,
+            'email': request.user.email,
+            'display': request.user.get_full_name() or request.user.username,
+            'picture': picture,
+        })
 
 class SessionTokenApiView(APIView):
     """

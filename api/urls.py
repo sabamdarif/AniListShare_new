@@ -1,8 +1,4 @@
 from django.urls import path
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenRefreshView,
-)
 
 from . import views
 
@@ -62,6 +58,10 @@ urlpatterns = [
         views.ShareDataApiView.as_view(),
         name="share_data",
     ),
+    path(
+        "user/profile/",
+        views.UserProfileApiView.as_view(),
+        name="user_profile",
     path("v1/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("v1/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path(

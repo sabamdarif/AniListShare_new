@@ -1,9 +1,63 @@
-from allauth.account.decorators import verified_email_required
-from django.contrib.auth.decorators import login_required
-from django.http import Http404
-from django.shortcuts import render
+import os
+import re
 
+from django.conf import settings
+from django.http import Http404, HttpResponse, FileResponse
+from django.shortcuts import render
+from django.views.decorators.cache import never_cache
+from django.contrib.auth.decorators import login_required
+
+from allauth.account.decorators import verified_email_required
 from core.models import ShareLink
+
+
+
+# ─── SPA entry point ────────────────────────────────────────────────────
+FRONTEND_DIR = os.path.join(settings.BASE_DIR, "frontend", "dist")
+ASSETS_DIR = os.path.realpath(os.path.join(FRONTEND_DIR, "assets"))
+
+
+@never_cache
+def spa_view(request):
+    """Serve the React SPA index.html for all client-side routes."""
+    index_path = os.path.join(FRONTEND_DIR, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(open(index_path, "rb"), content_type="text/html")
+    # Fallback: in dev mode the SPA might not be built yet
+    return HttpResponse(
+        "<h1>Frontend not built</h1>"
+        "<p>Run <code>cd frontend && npm run build</code> first, "
+        "or use <code>npm run dev</code> on port 5173 for development.</p>",
+        content_type="text/html",
+        status=503,
+    )
+
+
+# ─── Serve SPA static assets (JS, CSS, images from frontend/dist/assets/) ───
+def spa_asset(request, path):
+    """Serve built frontend assets from frontend/dist/assets/."""
+    if not path:
+        raise Http404
+
+    normalized = os.path.normpath(path.replace("\\", "/"))
+    if (
+        not normalized
+        or normalized in {".", ".."}
+        or normalized.startswith("/")
+        or os.path.isabs(normalized)
+        or normalized.startswith("../")
+        or "/../" in f"/{normalized}/"
+        or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._/-]*", normalized)
+    ):
+        raise Http404
+
+    filepath = os.path.realpath(os.path.join(ASSETS_DIR, normalized))
+    if os.path.commonpath([ASSETS_DIR, filepath]) != ASSETS_DIR:
+        raise Http404
+
+    if os.path.isfile(filepath):
+        return FileResponse(open(filepath, "rb"))
+    raise Http404
 
 
 @login_required
@@ -13,7 +67,9 @@ def home(request):
     return render(request, "core/index.html", context)
 
 
+# ─── Shared list — kept as server-side for SEO ──────────────────────────
 def shared_list_view(request, token):
+    """Server-rendered shared list page for SEO/social link previews."""
     try:
         share = ShareLink.objects.select_related("user").get(token=token)
     except ShareLink.DoesNotExist:
@@ -26,4 +82,5 @@ def shared_list_view(request, token):
         "share_token": token,
         "user_is_authenticated": request.user.is_authenticated,
     }
+
     return render(request, "core/shared_list.html", context)
